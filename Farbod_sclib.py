@@ -6,6 +6,38 @@ q=0.9
 mu_consumer_demand=60
 sigma_consumer_demand=10
 
+# parameters
+class Parameters:
+    """
+    The Parameters class contains constant variables of the problem.
+    All attributes have a getter, but no setter. The default values
+    are set internally.
+    """
+    _q: float
+    _mu_consumer_demand: float
+    _sigma_consumer_demand: float
+    
+    def __init__(self):
+        """ Constructor """
+        self._q = 0.9
+        self._mu_consumer_demand = 60
+        self._sigma_consumer_demand = 10
+        # and so on and so forth
+
+#parameter getters.
+    @property
+    def q(self):
+        return self._q
+    
+    @property
+    def mu_consumer_demand(self):
+        return self._mu_consumer_demand
+    
+    @property
+    def sigma_consumer_demand(self):
+        return self._sigma_consumer_demand
+
+
 
 # Error codes
 success = 0
@@ -61,7 +93,7 @@ class agent:
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == retailer:
-            self.consumer_demand = np.random.normal(mu_consumer_demand,sigma_consumer_demand)
+            self.consumer_demand = int(np.random.normal(mu_consumer_demand,sigma_consumer_demand))
             self.supplier_set=[]
         elif self.role == manufacturer:
             self.supplier_set=[]
