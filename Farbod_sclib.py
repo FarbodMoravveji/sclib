@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from operator import itemgetter
+import math
 
 # parameters
 class Parameters:
@@ -22,21 +23,21 @@ class Parameters:
         self._p_delivery= 0.8
         # and so on and so forth
 
-#parameter getters.
+    #parameter getters.
     @property
-    def q(self):
+    def q(self) -> float :
         return self._q
     
     @property
-    def mu_consumer_demand(self):
+    def mu_consumer_demand(self) -> float :
         return self._mu_consumer_demand
     
     @property
-    def sigma_consumer_demand(self):
+    def sigma_consumer_demand(self) -> float :
         return self._sigma_consumer_demand
     
     @property
-    def p_delivery(self):
+    def p_delivery(self) -> float :
         return self._p_delivery
 
 
@@ -59,7 +60,11 @@ class Agent:
     """
     all_agents=[]     # a list that contains all agents
     
-    def __init__(self,agent_id, role, working_capital=100, selling_price=5):
+    def __init__(self, 
+                 agent_id: int, 
+                 role: str, 
+                 working_capital: float = 100.0, 
+                 selling_price: float = 5.0):
         
         """
         constructor
@@ -90,27 +95,27 @@ class Agent:
         manufacturer             N                  Y             Y               Y                  Y                Y                  Y                   Y
         supplier                 N                  N             Y               Y                  Y                N                  Y                   N
         """
-       
+        
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == retailer:
-            self.consumer_demand = np.random.normal(Parameters.mu_consumer_demand,Parameters.sigma_consumer_demand)
-            self.supplier_set=[]
-            self.received_productions=0
-            self.order_quantity=0
+            self.consumer_demand = np.random.normal(Parameters.mu_consumer_demand, Parameters.sigma_consumer_demand)
+            self.supplier_set = []
+            self.received_productions = 0
+            self.order_quantity = 0
         elif self.role == manufacturer:
-            self.supplier_set=[]
-            self.consumer_set=[]
-            self.received_orders=0
-            self.received_productions=0
-            self.prod_cap= Parameters.q*self.working_capital
-            self.order_quant_tracker-[]
-            self.order_quantity=0
+            self.supplier_set = []
+            self.consumer_set = []
+            self.received_orders = 0
+            self.received_productions = 0
+            self.prod_cap = Parameters.q * self.working_capital
+            self.order_quant_tracker = []
+            self.order_quantity = 0
         elif self.role == supplier:
-            self.consumer_set=[]
-            self.received_orders=0
-            self.prod_cap= Parameters.q*self.working_capital
-            self.order_quant_tracker-[]
+            self.consumer_set = []
+            self.received_orders = 0
+            self.prod_cap = Parameters.q * self.working_capital
+            self.order_quant_tracker = []
 
 
             
@@ -141,34 +146,35 @@ class Agent:
         ordering trace of the retailer within it's current step and also facilitate
         the delivering of the products to the appropriate retailers.
         """
-        temp_list=[]
-        self.order_quantity=int((self.consumer_demand)/3)    #retailers order to 3 manufacturers in equal volumes.
-        step_all_manufacturers=[agent for agent in Agent.all_agents if agent.role==manufacturer] #why is all_agents undefined?
+        if self.role != retailer:
+            return
+        
+        temp_list = []
+        self.order_quantity = math.floor(self.consumer_demand / 3)    #retailers order to 3 manufacturers in equal volumes.
+        if self.order_quantity < 1:
+            raise ValueError(f"Error: {self.order_quantity} is less than 1")
+        
+        step_all_manufacturers=[agent for agent in Agent.all_agents if agent.role==manufacturer]
         step_manufacturers=[(agent.agent_id, agent.selling_price) for agent in step_all_manufacturers if agent.prod_cap>=self.order_quantity] #a list of tuples containing available manufacturers. 
         #do i need an exception handler here? in case there is no available manufacturer.
-        if len(step_manufacturers)>=3:
+        if step_manufacturers.len() == 0:    #can't order anything
+            return 
+        elif len(step_manufacturers) >= 3:
             step_manufacturers.sort(key=itemgetter(1)) #sorts the containers by the second item of the tuples.
             temp_list.append(step_manufacturers[:3]) #chooses three manufacturers with the least selling prices.
             for atuple in temp_list:                  # save manufacturer objects to list of suupliers
                 self.supplier_set.append(agent for agent in Agent.all_agents if agent.agent_id==atuple[0])
-        elif step_manufacturers.len()==0:    #can't order anything
-            return # is it true?
         else:
             step_manufacturers.sort(key=itemgetter(1)) #sorts the containers by the second item of the tuples.
             temp_list.append(step_manufacturers[:len(step_manufacturers)]) #chooses one or two manufacturers that are available.
             for atuple in temp_list:
                 self.supplier_set.append(agent for agent in Agent.all_agents if agent.agent_id==atuple[0])
-        try:  #i'm writing this try,except cluse in case self.supplier_set is still empty, is it necessary? 
+        
             for agent in self.supplier_set:
                 agent.customer_set.append(self) #I intend to add a retailer object to the list, am i doing it right?
-                agent.prod_cap-=self.order_quantity  # to stop manufacturers from accepting infinite orders.
-                agent.received_orders+=self.order_quantity
-                agent.order_quant_tracker.append((self.agent_id,self.order_quantity)) #keeping track of the order quantity is important for delivering phase.
-                
-        except:
-            return  #is it true? int
-        
-       
+                agent.prod_cap -= self.order_quantity  # to stop manufacturers from accepting infinite orders.
+                agent.received_orders += self.order_quantity
+                agent.order_quant_tracker.append((self.agent_id,self.order_quantity)) #keeping track of the order quantity is important for delivering phase.   
         
         def order_to_suppliers(self):
             """
@@ -230,7 +236,7 @@ class Agent:
                         counter+=1
 
 
-        def delivered_to_retailers(self):
+        def deliver_to_retailers(self):
             if len(self.customer_set)==0 or self.received_productions==0:         
                 return
             else:
@@ -238,10 +244,10 @@ class Agent:
                 if step_production==0:
                     return
                 else:
-                    delivery_amount=[(agent.agent_id,step_production*((agent.order_quantity)/self.received_orders)) for agent in self.customer_set] # to deliver in amounts related to the portion of custumer order to total orders. 
+                    delivery_amount=[(agent.agent_id,step_production*((agent.order_quantity) / self.received_orders)) for agent in self.customer_set] # to deliver in amounts related to the portion of custumer order to total orders. 
                     for tup in delivery_amount:
                         temp_list.append(agent for agent in Agent.all_agents if tup[0]==agent.agent_id)        
                     for agent in temp_list:
-                        counter=0
+                        counter = 0
                         agent.received_productions+=int(delivery_amount[counter][1])
-                        counter+=1
+                        counter += 1
