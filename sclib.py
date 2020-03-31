@@ -21,10 +21,10 @@ class Parameters:
     
     def __init__(self):
         """ Constructor """
-        self._q = 0.9
-        self._mu_consumer_demand = 60
-        self._sigma_consumer_demand = 10
-        self._p_delivery = 0.8
+        self._q = 0.90
+        self._mu_consumer_demand = 60.00
+        self._sigma_consumer_demand = 10.00
+        self._p_delivery = 0.80
         self._max_suppliers = 3
         self._input_margin = 0.01
         self._interest_rate = 0.002
@@ -66,11 +66,11 @@ success = 0
 abort   = 1
 
 # Pre-defined agent roles
-retailer='r'
-manufacturer='m'
-supplier='s'
+retailer ='r'
+manufacturer ='m'
+supplier ='s'
 
-class Agent:
+class Agent(Parameters):
     """
     The generic class to create supply chain agents.
     The initial working capital is supplied via the "working capital" variable
@@ -97,6 +97,8 @@ class Agent:
                   - 's' for supplier
         """
         
+        Parameters.__init__(self)
+        
         self.agent_id = agent_id
         self.working_capital = working_capital
         self.role = role
@@ -119,7 +121,8 @@ class Agent:
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == retailer:
-            self.consumer_demand = np.random.normal(Parameters.mu_consumer_demand, Parameters.sigma_consumer_demand)
+            print(type(self.mu_consumer_demand))
+            self.consumer_demand = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
             self.supplier_set = []
             self.received_productions = []
             self.order_quantity = 0
@@ -173,7 +176,7 @@ class Agents:
         """
         if self.role != retailer:
             return
-        
+
         temp_list = []
         self.order_quantity = math.floor(self.consumer_demand / Parameters.max_suppliers)    #retailers order to Parameters.max_suppliers manufacturers in equal volumes.
         if self.order_quantity < 1:
