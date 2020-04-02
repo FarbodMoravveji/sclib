@@ -2,6 +2,7 @@ import sys
 import numpy as np
 from operator import itemgetter
 import math
+from typing import List
 
 # parameters
 class Parameters:
@@ -78,6 +79,7 @@ class Agent(Parameters):
     The type of the agent is supplied via the "role" variable supplied to the
     constructor and it can be a retailer, manufacturer or a supplier
     """
+    #all_agents : List[Agent]
     all_agents = []     # a list that contains all agents
     
     def __init__(self, 
@@ -108,7 +110,7 @@ class Agent(Parameters):
     
         Agent.all_agents.append(self)
     
-    def __assign_role_specific_attributes(self):
+    def __assign_role_specific_attributes(self) -> None: 
         """
         Private method to add the following attributes to the following roles
 
@@ -121,7 +123,7 @@ class Agent(Parameters):
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == retailer:
-            print(type(self.mu_consumer_demand))
+            #print(type(self.mu_consumer_demand))
             self.consumer_demand = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
             self.supplier_set = []
             self.received_productions = []
@@ -131,7 +133,7 @@ class Agent(Parameters):
             self.consumer_set = []
             self.received_orders = 0
             self.received_productions = []
-            self.prod_cap = Parameters.q * self.working_capital
+            self.prod_cap = self.q * self.working_capital
             self.order_quant_tracker = []
             self.order_quantity = 0
             self.step_production = 0
@@ -139,13 +141,13 @@ class Agent(Parameters):
         elif self.role == supplier:
             self.consumer_set = []
             self.received_orders = 0
-            self.prod_cap = Parameters.q * self.working_capital
+            self.prod_cap = self.q * self.working_capital
             self.order_quant_tracker = []
             self.step_production = 0
             self.delivery_amount = []
 
             
-    def __check_role(self):
+    def __check_role(self) -> None:
         """
         Private method to check the sanity of the role
         """
@@ -156,14 +158,21 @@ class Agent(Parameters):
             sys.exit(abort)
     
 class Agents:
+    """
     
-    def __lt__(self, object):
+    """
+    
+    def __init__(self, all_agents):
+        self.all_agents = all_agents
+    
+    def __lt__(self, object) -> bool:
         """
         necessary for gaining the ability of making instances of a class comparable.
         """
         if self.sort_num:
             return self.number < object.number
         return self.string < object.string
+    
     
     # Behavioral functions
     def order_to_manufacturers(self):
@@ -178,18 +187,21 @@ class Agents:
             return
 
         temp_list = []
-        self.order_quantity = math.floor(self.consumer_demand / Parameters.max_suppliers)    #retailers order to Parameters.max_suppliers manufacturers in equal volumes.
+        self.order_quantity = math.floor(self.consumer_demand / self.max_suppliers)    #retailers order to self.max_suppliers manufacturers in equal volumes.
         if self.order_quantity < 1:
             raise ValueError(f"Error: {self.order_quantity} is less than 1")
         
         step_all_manufacturers=[agent for agent in Agent.all_agents if agent.role == manufacturer]
-        step_manufacturers=[(agent.agent_id, agent.selling_price) for agent in step_all_manufacturers if agent.prod_cap>=self.order_quantity] #a list of tuples containing available manufacturers. 
+        step_manufacturers=[(agent.agent_id, agent.selling_price) for 
+                            agent in step_all_manufacturers if 
+                            agent.prod_cap>=self.order_quantity and 
+                            agent.selling_price <= self.selling_price] #a list of tuples containing available manufacturers. 
         #do i need an exception handler here? in case there is no available manufacturer.
-        if step_manufacturers.len() == 0:    #can't order anything
+        if step_manufacturers.len() == 0:    #can't order anything 
             return 
-        elif len(step_manufacturers) >= Parameters.max_suppliers:
+        elif len(step_manufacturers) >= self.max_suppliers:
             step_manufacturers.sort(key=itemgetter(1)) #sorts the containers by the second item of the tuples.
-            temp_list.append(step_manufacturers[:Parameters.max_suppliers]) #chooses three manufacturers with the least selling prices.
+            temp_list.append(step_manufacturers[:self.max_suppliers]) #chooses three manufacturers with the least selling prices.
             for atuple in temp_list:                  # save manufacturer objects to list of suupliers
                 self.supplier_set.append(agent for agent in Agent.all_agents if agent.agent_id == atuple[0])
         else:
@@ -216,13 +228,16 @@ class Agents:
         if self.role != manufacturer:
             return
         temp_list=[]
-        self.order_quantity=int((self.received_orders) / Parameters.max_suppliers)    #manufacturers order to Parameters.max_suppliers suppliers in equal volumes.
+        self.order_quantity=int((self.received_orders) / self.max_suppliers)    #manufacturers order to self.max_suppliers suppliers in equal volumes.
         step_all_suppliers=[agent for agent in Agent.all_agents if agent.role == supplier] #why is all_agents undefined?
-        step_suppliers=[(agent.agent_id, agent.selling_price) for agent in step_all_suppliers if agent.prod_cap>=self.order_quantity] #a list of tuples containing available suppliers. 
+        step_suppliers=[(agent.agent_id, agent.selling_price) for agent in 
+                        step_all_suppliers if 
+                        agent.prod_cap>=self.order_quantity and 
+                        agent.selling_price <= self.selling_price] #a list of tuples containing available suppliers. 
         #do i need an exception handler here? in case there is no available supplier.
-        if len(step_suppliers) >= Parameters.max_suppliers:
+        if len(step_suppliers) >= self.max_suppliers:
             step_suppliers.sort(key=itemgetter(1)) #sorts the containers by the second item of the tuples.
-            temp_list.append(step_suppliers[:Parameters.max_suppliers]) #chooses three suppliers with the least selling prices.
+            temp_list.append(step_suppliers[:self.max_suppliers]) #chooses three suppliers with the least selling prices.
             for atuple in temp_list:
                 self.supplier_set.append(agent for agent in Agent.all_agents if agent.agent_id == atuple[0])
         elif step_suppliers.len() == 0:    #can't order anything
@@ -256,7 +271,7 @@ class Agents:
         if len(self.customer_set) == 0:         #making sure self has received some orders
             return
         else:
-            self.step_production = self.received_orders * (np.random.binomial(n = 1, p = Parameters.p_delivery)) #supplier produces full order amount by probability p_delivery and zero by 1-p_delivery
+            self.step_production = self.received_orders * (np.random.binomial(n = 1, p = self.p_delivery)) #supplier produces full order amount by probability p_delivery and zero by 1-p_delivery
             if self.step_production == 0:
                 return
             else:
@@ -268,7 +283,7 @@ class Agents:
                     counter = 0
                     agent.received_productions.append(int(self.delivery_amount[counter][1]), self.selling_price)  #Kepping records of received products and their prices for customers.
                     counter += 1
-                step_profit = Parameters.input_margin * self.step_production - Parameters.interest_rate * self.working_capital  #calculating profit using a fixed margin for suppliers
+                step_profit = self.input_margin * self.step_production - self.interest_rate * self.working_capital  #calculating profit using a fixed margin for suppliers
                 self.working_capital += self.working_capital + step_profit                        # Updating suppliers' working capital.
 
     def deliver_to_retailers(self):
@@ -292,7 +307,7 @@ class Agents:
         if len(self.customer_set) == 0 or total_received_production == 0:         
             return
         else:
-            self.step_production = self.received_productions * (np.random.binomial(n = 1, p = Parameters.p_delivery)) #manufacturer produces full order amount by probability p_delivery only if all its suppliers deliver fully.
+            self.step_production = self.received_productions * (np.random.binomial(n = 1, p = self.p_delivery)) #manufacturer produces full order amount by probability p_delivery only if all its suppliers deliver fully.
             if self.step_production == 0:
                 return
             else:
@@ -305,7 +320,7 @@ class Agents:
                     counter += 1
                 
                 unit_production_cost = total_money_paid / total_received_production
-                step_profit = (self.selling_price * self.step_production) - (unit_production_cost * self.step_production) - (Parameters.interest_rate * self.working_capital)
+                step_profit = (self.selling_price * self.step_production) - (unit_production_cost * self.step_production) - (self.interest_rate * self.working_capital)
                 self.working_capital += self.working_capital + step_profit
 
     def calculate_retailer_profit(self):
@@ -328,5 +343,5 @@ class Agents:
         
         else:
              unit_production_cost = total_money_paid / total_received_production
-             step_profit = (self.selling_price * total_received_production) - (unit_production_cost * total_received_production) - (Parameters.interest_rate * self.working_capital)
+             step_profit = (self.selling_price * total_received_production) - (unit_production_cost * total_received_production) - (self.interest_rate * self.working_capital)
              self.working_capital += self.working_capital + step_profit
