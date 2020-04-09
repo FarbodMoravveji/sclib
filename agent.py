@@ -21,7 +21,14 @@ class Agent(Parameters):
                  agent_id: int, 
                  role: str, 
                  working_capital: float = 100.00, 
-                 selling_price: float = 5.00):
+                 selling_price: float = 5.00,
+                 q: float = 0.90,
+                 mu_consumer_demand: float = 60.00,
+                 sigma_consumer_demand: float = 10.00,
+                 p_delivery: float = 0.80,
+                 max_suppliers: float = 3,
+                 input_margin: float = 0.01,
+                 interest_rate: float = 0.002):
         
         """
         constructor
@@ -40,6 +47,13 @@ class Agent(Parameters):
         self.working_capital = working_capital
         self.role = role
         self.selling_price = selling_price
+        self.q = q
+        self.mu_consumer_demand = mu_consumer_demand
+        self.sigma_consumer_demand = sigma_consumer_demand
+        self.p_delivery = p_delivery
+        self.max_suppliers = max_suppliers
+        self.input_margin = input_margin
+        self.interest_rate = interest_rate
         self.__check_role()
         self.__assign_role_specific_attributes()
     
