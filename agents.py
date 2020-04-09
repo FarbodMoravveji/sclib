@@ -18,15 +18,24 @@ class Agents:
     """
     
     list_agents : List[Agent]
+    ret_list : List[Agent]
+    man_list : List[Agent]
+    sup_list : List[Agent]
     
     def __init__(self, list_agents) -> None :
         self.list_agents = list_agents
-        self.ret_list = [agent for agent in self.list_agents if agent.role == 
-                         'r' and agent.consumer_demand != 0]                   #Filters list_agents for retailers who should order.
-        self.man_list = [agent for agent in self.list_agents if agent.role == 
-                         'm']                                                  #Filters list_agents for manufacturers.
-        self.sup_list = [agent for agent in self.list_agents if agent.role ==
-                         's']                                                  #Filters list_agents for suppliers.
+        self.__break_list()
+        
+    def __break_list(self):
+        self.ret_list = [agent for agent in self.list_agents if 
+                          agent.role == agent.retailer and 
+                          agent.consumer_demand != 0]                          #Filters list_agents for retailers who should order.
+        
+        self.man_list = [agent for agent in self.list_agents if 
+                         agent.role == agent.manufacturer]                                    #Filters list_agents for manufacturers.
+        
+        self.sup_list = [agent for agent in self.list_agents if 
+                         agent.role == agent.supplier]                                    #Filters list_agents for suppliers.
 
     
     def __lt__(self, object) -> bool:
@@ -53,7 +62,7 @@ class Agents:
         shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
         for agent in self.ret_list:                                            #Retailers order to self.max_suppliers manufacturers in equal volumes.
-            agent.order_quantity = math.floor(agent.consumer_demand / 
+            agent.order_quantity = (agent.consumer_demand / 
                                               agent.max_suppliers)
         
         for agent in self.ret_list:
@@ -104,8 +113,8 @@ class Agents:
         shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
         for agent in self.man_list:
-            agent.order_quantity = math.floor((agent.received_orders) / 
-                                            agent.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
+            agent.order_quantity = (agent.received_orders) / 
+                                            agent.max_suppliers                #manufacturers order to max_suppliers suppliers in equal volumes.
             
         for agent in self.man_list:
             if agent.received_orders < 1:
@@ -176,7 +185,7 @@ class Agents:
                     for agent in temp_list:                                    #Iterating over customer agents and delivering proportionally.
                         counter = 0
                         agent.received_productions.append(
-                            math.floor(sup.delivery_amount[counter][1]),
+                            sup.delivery_amount[counter][1],
                             sup.selling_price)                                 #Kepping records of received products and their prices for customers.
                         counter += 1
                     step_profit = sup.input_margin * sup.step_production - sup.interest_rate * sup.working_capital  #Calculating profit using a fixed margin for suppliers
@@ -218,7 +227,7 @@ class Agents:
                     for agent in temp_list:
                         counter = 0
                         agent.received_productions.append(
-                            int(man.delivery_amount[counter][1]), man.selling_price)  #Kepping records of received products and their prices for customers.
+                            man.delivery_amount[counter][1], man.selling_price)  #Kepping records of received products and their prices for customers.
                         counter += 1
                     
                     unit_production_cost = total_money_paid / total_received_production
@@ -231,7 +240,7 @@ class Agents:
         receives an Agents object and manipulates retailers' working capital.
         """
         
-        for ret in sself.ret_list:
+        for ret in self.ret_list:
             total_received_production = 0
             total_money_paid = 0
 
