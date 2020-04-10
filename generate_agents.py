@@ -44,5 +44,12 @@ class GenAgents:
             x = Agent(self.df["agent_id"].at[i],
                       self.df["role"].at[i],
                       self.df["working_capital"].at[i],
-                      self.df["selling_price"].at[i])
+                      self.df["selling_price"].at[i],
+                      self.df["q"].at[i],
+                      self.df["mu_consumer_demand"].at[i],
+                      self.df["sigma_consumer_demand"].at[i],
+                      self.df["p_delivery"].at[i],
+                      self.df["max_suppliers"].at[i],
+                      self.df["input_margin"].at[i],
+                      self.df["interest_rate"].at[i])
             self.list_agents.append(x)
