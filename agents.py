@@ -47,6 +47,19 @@ class Agents:
         return self.string < object.string
     
     
+    def almost_equal_to_zero(value, tol):
+        """
+        Calculats isclose(value, 0) method with absolute tolerance.
+        """
+        if math.isclose(value, 0,abs_tol = tol):
+            return True
+        else:
+            return False
+        
+    def find_agent_by_id(self, unique_id):
+        return (agent for agent in self.list_agents if unique_id == agent.agent_id)
+        
+    
     # Behavioral functions
     def order_to_manufacturers(self):
         """
@@ -56,48 +69,37 @@ class Agents:
         of retailers within it's current step and also facilitates the 
         delivery of the products to the appropriate retailers.
         """
-
-        temp_list = list()
         
         shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
-        for agent in self.ret_list:                                            #Retailers order to self.max_suppliers manufacturers in equal volumes.
-            agent.order_quantity = (agent.consumer_demand / 
-                                              agent.max_suppliers)
-        
-        for agent in self.ret_list:
-            if agent.order_quantity < 1:
-                raise ValueError(f"Error: {agent.order_quantity} is less than 1")
-        
         for ret in self.ret_list:
+            ret.order_quantity = (ret.consumer_demand / 
+                                              ret.max_suppliers)
+            
+            if self.almost_equal_to_zero(ret.order_quantity, ret.tol):
+                continue
+            
             ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
                                 agent in self.man_list if 
                                 agent.prod_cap >= ret.order_quantity and 
                                 agent.selling_price <= ret.selling_price]      #A list of tuples containing eligible manufacturers.
-            if ret.elig_ups_agents.len() == 0:    #can't order anything 
-                return 
-            elif len(ret.elig_ups_agents) >= ret.max_suppliers:
-                ret.elig_ups_agents.sort(key=itemgetter(1))                    #Sorts the containers by the second item of the tuples.
-                temp_list.append(ret.elig_ups_agents[:ret.max_suppliers])      #Chooses three manufacturers with the least selling prices.
-                for atuple in temp_list:                                       #Saves manufacturer objects to list of step suupliers.
-                    ret.supplier_set.append(agent for agent in self.man_list
-                                            if agent.agent_id == atuple[0])
-            else:
-                ret.elig_ups_agents.sort(key=itemgetter(1))                    #Sorts the container by the second item of the tuples.
-                temp_list.append(ret.elig_ups_agents[:len(ret.elig_ups_agents)]) #Chooses one or two manufacturers that are available.
-                for atuple in temp_list:
-                    ret.supplier_set.append(agent for agent in self.man_list
-                                            if agent.agent_id == atuple[0])
+           
+            if not ret.elig_ups_agents:                                        #can't order anything 
+                continue
             
-            try:
-                for agent in ret.supplier_set:
-                    agent.customer_set.append(ret)                             #Add a retailer object to the list.
-                    agent.prod_cap -= ret.order_quantity                       #Stopping manufacturers from accepting infinite orders.
-                    agent.received_orders += ret.order_quantity
-                    agent.order_quant_tracker.append((ret.agent_id,
-                                                      ret.order_quantity))     #Keeping track of the order quantity is important for delivering phase.   
-            except:
-                return
+            ret.elig_ups_agents.sort(key = itemgetter(1))                      #Sorting the list of eligible up-stream agents based on their prices.
+            n_elig_ups = len(ret.elig_ups_agents)
+            n_append = min([n_elig_ups, ret.max_suppliers])
+            ret.supplier_set.extend(ret.elig_ups_agents[:n_append])            #Adding eligible upstream agents to supplier set of the agent.
+            
+        for ret in self.ret_list:
+            for (agent_id, _) in ret.supplier_set:
+                agent = self.find_agent_by_id(agent_id)                        #Finding a manufacturer object by it's agent_id.
+                agent.customer_set.append(ret.agent_id)                        #Add a retailer id to the list.
+                agent.prod_cap -= ret.order_quantity                           #Stopping manufacturers from accepting infinite orders.
+                agent.received_orders += ret.order_quantity
+                agent.order_quant_tracker.append((ret.agent_id,
+                                                  ret.order_quantity))         #Keeping track of the order quantity is important for delivering phase.   
             
     def order_to_suppliers(self):
         """
@@ -107,50 +109,37 @@ class Agents:
         the manufacturers within it's current step and also facilitates the 
         delivery of the products to the appropriate manufacturers.
         """
-
-        temp_list = list()
                         
         shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
-        for agent in self.man_list:
-            agent.order_quantity = (agent.received_orders /agent.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
-            
-        for agent in self.man_list:
-            if agent.received_orders < 1:
-                raise ValueError(f"Error: {agent.received_orders} is less than 1")
-        
+                
         for man in self.man_list:
+            man.order_quantity = (man.received_orders /man.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
+            
+            if man.almost_equal_to_zero(man.received_orders, man.tol):
+                continue
+          
             man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
                                 agent in self.sup_list if 
                                 agent.prod_cap >= man.order_quantity and 
                                 agent.selling_price <= man.selling_price]      #A list of tuples containing eligible suppliers.
 
-            if man.elig_ups_agents.len() == 0:                                 #Can't order anything.
-                return 
+            if not man.elig_ups_agents:
+                continue
             
-            elif len(man.elig_ups_agents) >= man.max_suppliers:
-                man.elig_ups_agents.sort(key=itemgetter(1))                    #Sorts the container by the second item of the tuples.
-                temp_list.append(man.elig_ups_agents[:man.max_suppliers])      #Chooses three suppliers with the least selling prices.
-                for atuple in temp_list:
-                    man.supplier_set.append(agent for agent in self.sup_list
-                                            if agent.agent_id == atuple[0])
-            
-            else:
-                man.elig_ups_agents.sort(key=itemgetter(1))                    #Sorts the container by the second item of the tuples.
-                temp_list.append(man.elig_ups_agents[:len(man.elig_ups_agents)]) #chooses one or two manufacturers that are available.
-                for atuple in temp_list:
-                    man.supplier_set.append(agent for agent in self.sup_list
-                                            if agent.agent_id == atuple[0])
-            try:                                                               #This try,except cluse is writtenin case man.supplier_set is still empty, is it necessary? 
-                for agent in man.supplier_set:
-                    agent.customer_set.append(man)                             #Add a manufacturer object to the list.
-                    agent.prod_cap -= man.order_quantity                       #To stop suppliers from accepting infinite orders.
+            man.elig_ups_agents.sort(key = itemgetter(1))
+            n_elig_ups = len(man.elig_ups_agents)
+            n_append = min([n_elig_ups, man.max_suppliers])
+            man.supplier_set.extend(man.elig_ups_agents[:n_append])
+
+            for man in self.man_list:
+                for (agent_id, _) in man.supplier_set:
+                    agent = self.find_agent_by_id(agent_id)
+                    agent.customer_set.append(man.agent_id)                             #Add a retailer object to the list.
+                    agent.prod_cap -= man.order_quantity                       #Stopping manufacturers from accepting infinite orders.
                     agent.received_orders += man.order_quantity
                     agent.order_quant_tracker.append((man.agent_id,
                                                       man.order_quantity))
-            
-            except:
-                return
         
     def deliver_to_manufacturers(self):
         """
