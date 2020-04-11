@@ -23,6 +23,7 @@ class Parameters:
     _retailer: str                  # Pre-defined agent role
     _manufacturer: str              # Pre-defined agent role
     _supplier: str                  # Pre-defined agent role
+    _tol: float                 # The parameter used for abs_tolerance in math.isclose() method.
     
     
     
@@ -40,7 +41,7 @@ class Parameters:
         self._retailer = 'r'
         self._manufacturer = 'm'
         self._supplier = 's'
-        
+        self._tol = 0.0001
 
     #parameter getters.
     # @property
@@ -90,3 +91,7 @@ class Parameters:
     @property
     def supplier(self) -> str:
         return self._supplier
+    
+    @property
+    def tol(self) -> float:
+        return self._tol
