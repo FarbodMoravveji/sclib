@@ -113,8 +113,7 @@ class Agents:
         shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
         for agent in self.man_list:
-            agent.order_quantity = (agent.received_orders) / 
-                                            agent.max_suppliers                #manufacturers order to max_suppliers suppliers in equal volumes.
+            agent.order_quantity = (agent.received_orders /agent.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
             
         for agent in self.man_list:
             if agent.received_orders < 1:
