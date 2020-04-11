@@ -17,6 +17,8 @@ class Agent(Parameters):
     constructor and it can be a retailer, manufacturer or a supplier
     """
     
+    order_quantity: float
+    
     def __init__(self, 
                  agent_id: int, 
                  role: str, 
@@ -71,7 +73,8 @@ class Agent(Parameters):
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == self.retailer:
             #print(type(self.mu_consumer_demand))
-            self.consumer_demand = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
+            rand_value = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
+            self.consumer_demand = 0.0 if rand_value < 0 else rand_value
             self.supplier_set = list()
             self.received_productions = list()
             self.order_quantity = 0
