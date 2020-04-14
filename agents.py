@@ -32,10 +32,10 @@ class Agents:
                           agent.consumer_demand != 0]                          #Filters list_agents for retailers who should order.
         
         self.man_list = [agent for agent in self.list_agents if 
-                         agent.role == agent.manufacturer]                                    #Filters list_agents for manufacturers.
+                         agent.role == agent.manufacturer]                     #Filters list_agents for manufacturers.
         
         self.sup_list = [agent for agent in self.list_agents if 
-                         agent.role == agent.supplier]                                    #Filters list_agents for suppliers.
+                         agent.role == agent.supplier]                         #Filters list_agents for suppliers.
 
     
     def __lt__(self, object) -> bool:
@@ -47,21 +47,21 @@ class Agents:
         return self.string < object.string
     
     
-    def almost_equal_to_zero(value, tol):
+    def almost_equal_to_zero(self, value: float, abs_tol: float) -> bool:
         """
         Calculats isclose(value, 0) method with absolute tolerance.
+        Return Type: bool
+        
         """
-        if math.isclose(value, 0,abs_tol = tol):
-            return True
-        else:
-            return False
+        return  math.isclose(value, 0,abs_tol = abs_tol)
+
         
     def find_agent_by_id(self, unique_id):
         return (agent for agent in self.list_agents if unique_id == agent.agent_id)
         
     
     # Behavioral functions
-    def order_to_manufacturers(self):
+    def order_to_manufacturers(self) -> None:
         """
         This method is responsible for handling the retailers' ordering process.
         It receives an Agents object and takes advantage of the retailer's 
@@ -76,17 +76,17 @@ class Agents:
             ret.order_quantity = (ret.consumer_demand / 
                                               ret.max_suppliers)
             
-            if self.almost_equal_to_zero(ret.order_quantity, ret.tol):
+            if self.almost_equal_to_zero(ret.order_quantity, ret.abs_tol):
                 continue
             
             ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
                                 agent in self.man_list if 
-                                agent.prod_cap >= ret.order_quantity and 
-                                agent.selling_price <= ret.selling_price]      #A list of tuples containing eligible manufacturers.
+                                agent.prod_cap > ret.order_quantity and 
+                                agent.selling_price < ret.selling_price]      #A list of tuples containing eligible manufacturers.
            
             if not ret.elig_ups_agents:                                        #can't order anything 
                 continue
-            
+
             ret.elig_ups_agents.sort(key = itemgetter(1))                      #Sorting the list of eligible up-stream agents based on their prices.
             n_elig_ups = len(ret.elig_ups_agents)
             n_append = min([n_elig_ups, ret.max_suppliers])
@@ -116,7 +116,7 @@ class Agents:
         for man in self.man_list:
             man.order_quantity = (man.received_orders /man.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
             
-            if man.almost_equal_to_zero(man.received_orders, man.tol):
+            if man.almost_equal_to_zero(man.received_orders, man.abs_tol):
                 continue
           
             man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
