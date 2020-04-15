@@ -28,7 +28,7 @@ class Agent(Parameters):
                  mu_consumer_demand: float = 60.00,
                  sigma_consumer_demand: float = 10.00,
                  p_delivery: float = 0.80,
-                 max_suppliers: float = 3,
+                 max_suppliers: int = 3,
                  input_margin: float = 0.01,
                  interest_rate: float = 0.002):
         
@@ -63,7 +63,7 @@ class Agent(Parameters):
         """
         Private method to add the following attributes to the following roles
 
-        role             consumer_demand    supplier_set  consumer_set  production_capacity  received_orders  received_productions  order_quant_tracker order_quantity step_production delivery_amount elig_ups_agents
+        role             consumer_demand    supplier_set  customer_set  production_capacity  received_orders  received_productions  order_quant_tracker order_quantity step_production delivery_amount elig_ups_agents
         retailer                 Y                  Y             N               N                  N                Y                  N                   Y             N                   N           Y
         manufacturer             N                  Y             Y               Y                  Y                Y                  Y                   Y             Y                   Y           Y
         supplier                 N                  N             Y               Y                  Y                N                  Y                   N             Y                   Y           N
@@ -75,6 +75,7 @@ class Agent(Parameters):
             #print(type(self.mu_consumer_demand))
             rand_value = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
             self.consumer_demand = 0.0 if rand_value < 0 else rand_value
+            # print(f"id = {self.agent_id}, rand_value = {rand_value}, consumer_demand = {self.consumer_demand}")
             self.supplier_set = list()
             self.received_productions = list()
             self.order_quantity = 0
@@ -82,6 +83,7 @@ class Agent(Parameters):
         elif self.role == self.manufacturer:
             self.supplier_set = list()
             self.consumer_set = list()
+            self.customer_set = list()
             self.received_orders = 0
             self.received_productions = list()
             self.prod_cap = self.q * self.working_capital
@@ -91,6 +93,7 @@ class Agent(Parameters):
             self.delivery_amount = list()
             self.elig_ups_agents = list()
         elif self.role == self.supplier:
+            self.customer_set = list()
             self.consumer_set = list()
             self.received_orders = 0
             self.prod_cap = self.q * self.working_capital

@@ -18,7 +18,7 @@ class Test_Agent(unittest.TestCase):
         self.sup3 = a9
   
     def test_q(self):
-        self.assertEqual(self.ret1.q, 0.9)
+        self.assertEqual(self.ret1.q, 0.99)
         
 
     def test_retailer_is(self):
@@ -35,6 +35,11 @@ class Test_Agent(unittest.TestCase):
     def test_default_values(self):
         self.assertEqual(self.ret3.working_capital , 100)
         self.assertEqual(self.ret3.selling_price , 5)
+        self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
+        self.assertEqual(self.ret3.sigma_consumer_demand , 10.00)
+        self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
+        self.assertTrue(self.ret3.consumer_demand)
+        # print(f'consumer_demand = {self.ret3.consumer_demand}' )
 
    
     def test_retailer_attrs(self):

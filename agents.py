@@ -57,7 +57,7 @@ class Agents:
 
         
     def find_agent_by_id(self, unique_id):
-        return (agent for agent in self.list_agents if unique_id == agent.agent_id)
+        return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
         
     
     # Behavioral functions
@@ -73,17 +73,20 @@ class Agents:
         shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
         for ret in self.ret_list:
-            ret.order_quantity = (ret.consumer_demand / 
-                                              ret.max_suppliers)
+            ret.order_quantity = ((ret.consumer_demand) / (ret.max_suppliers))
             
             if self.almost_equal_to_zero(ret.order_quantity, ret.abs_tol):
+                print(f"order_quantity from agents = {ret.order_quantity}")
                 continue
             
-            ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-                                agent in self.man_list if 
-                                agent.prod_cap > ret.order_quantity and 
-                                agent.selling_price < ret.selling_price]      #A list of tuples containing eligible manufacturers.
-           
+            for agent in self.man_list:
+                # print(f"agent_prod_cap = {agent.prod_cap}, ret_order_quantity = {ret.order_quantity}, agent_selling_price = {agent.selling_price}, ret_selling_price = {ret.selling_price}")
+                ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
+                                    agent in self.man_list if 
+                                    agent.prod_cap > ret.order_quantity and 
+                                    agent.selling_price < ret.selling_price]      #A list of tuples containing eligible manufacturers.
+            # print(f"{ret.elig_ups_agents}")
+            
             if not ret.elig_ups_agents:                                        #can't order anything 
                 continue
 

@@ -25,6 +25,9 @@ class Test_GenAgents(unittest.TestCase):
         self.assertEqual(self.GA.list_agents[2].selling_price, 5.3)
         self.assertEqual(self.GA.list_agents[2].role, 's')
         self.assertEqual(self.GA.list_agents[2].agent_id, 3)
+        self.assertEqual(self.GA.list_agents[2].mu_consumer_demand, 60.00)
+        self.assertEqual(self.GA.list_agents[2].sigma_consumer_demand, 10.00)
+        
         
 if __name__ == '__main__':
     unittest.main()
