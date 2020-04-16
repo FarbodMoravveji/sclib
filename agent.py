@@ -18,6 +18,20 @@ class Agent(Parameters):
     """
     
     order_quantity: float
+    consumer_demand: float
+    supplier_set: list
+    customer_set: list
+    prod_cap: float
+    received_orders: float
+    received_productions: list
+    order_quant_tracker: list
+    order_quantity: float
+    step_production: float
+    delivery_amount: list
+    elig_ups_agents: list
+    
+    
+    
     
     def __init__(self, 
                  agent_id: int, 
@@ -78,27 +92,27 @@ class Agent(Parameters):
             # print(f"id = {self.agent_id}, rand_value = {rand_value}, consumer_demand = {self.consumer_demand}")
             self.supplier_set = list()
             self.received_productions = list()
-            self.order_quantity = 0
+            self.order_quantity = 0.0
             self.elig_ups_agents = list()
         elif self.role == self.manufacturer:
             self.supplier_set = list()
             self.consumer_set = list()
             self.customer_set = list()
-            self.received_orders = 0
+            self.received_orders = 0.0
             self.received_productions = list()
-            self.prod_cap = self.q * self.working_capital
+            self.prod_cap = 0.0
             self.order_quant_tracker = list()
-            self.order_quantity = 0
-            self.step_production = 0
+            self.order_quantity = 0.0
+            self.step_production = 0.0
             self.delivery_amount = list()
             self.elig_ups_agents = list()
         elif self.role == self.supplier:
             self.customer_set = list()
             self.consumer_set = list()
-            self.received_orders = 0
-            self.prod_cap = self.q * self.working_capital
+            self.received_orders = 0.0
+            self.prod_cap = 0.0
             self.order_quant_tracker = list()
-            self.step_production = 0
+            self.step_production = 0.0
             self.delivery_amount = list()
 
             
@@ -111,4 +125,6 @@ class Agent(Parameters):
         else:
             raise ValueError(f'__check_role: self.role = "{self.role}" is undefined')
             sys.exit(self.abort)
+            
+        
 

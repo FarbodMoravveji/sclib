@@ -22,11 +22,20 @@ class Agents:
     man_list : List[Agent]
     sup_list : List[Agent]
     
-    def __init__(self, list_agents) -> None :
-        self.list_agents = list_agents
+    def __init__(self, _list_agents) -> None :
+        self._list_agents = _list_agents
         self.__break_list()
+        self.__check_duplicate_id()
         
+    @property
+    def list_agents(self) -> list:
+        return self._list_agents
+    
+    
     def __break_list(self):
+        """
+        Creates lists of retailers, manufacturers and suppliers. 
+        """
         self.ret_list = [agent for agent in self.list_agents if 
                           agent.role == agent.retailer and 
                           agent.consumer_demand != 0]                          #Filters list_agents for retailers who should order.
@@ -37,7 +46,20 @@ class Agents:
         self.sup_list = [agent for agent in self.list_agents if 
                          agent.role == agent.supplier]                         #Filters list_agents for suppliers.
 
-    
+    def __check_duplicate_id(self) -> None:
+        """
+        Checks if list_agents contain any duplicate agent_ids.
+        """
+        agents_set = set()
+        ids = [agent.agent_id for agent in self.list_agents]
+        for elem in ids:
+            if elem in agents_set:
+                raise ValueError(f'__check_duplicate_id: Agents.list_agents contains at least one duplicate id')
+            else:
+                agents_set.add(elem)
+        
+            
+        
     def __lt__(self, object) -> bool:
         """
         necessary for gaining the ability to make instances of a class comparable.
@@ -57,6 +79,9 @@ class Agents:
 
         
     def find_agent_by_id(self, unique_id):
+        """
+        Finds an agent whose id is equivalent to the unique_id proovided
+        """
         return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
         
     
@@ -72,21 +97,34 @@ class Agents:
         
         shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
+        for man in self.man_list:
+            man.prod_cap = man.q * man.working_capital
+            if man.customer_set:
+                man.customer_set = list()
+                
+            if man.received_orders:
+                man.received_orders = 0.0
+                
+            if man.order_quant_tracker:
+                man.order_quant_tracker = list()
+        
         for ret in self.ret_list:
+            if ret.supplier_set:
+                ret.supplier_set = list()
+            
+            if ret.elig_ups_agents:
+                ret.elig_ups_agents = list()
+            
             ret.order_quantity = ((ret.consumer_demand) / (ret.max_suppliers))
             
             if self.almost_equal_to_zero(ret.order_quantity, ret.abs_tol):
-                print(f"order_quantity from agents = {ret.order_quantity}")
                 continue
             
-            for agent in self.man_list:
-                # print(f"agent_prod_cap = {agent.prod_cap}, ret_order_quantity = {ret.order_quantity}, agent_selling_price = {agent.selling_price}, ret_selling_price = {ret.selling_price}")
-                ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-                                    agent in self.man_list if 
-                                    agent.prod_cap > ret.order_quantity and 
-                                    agent.selling_price < ret.selling_price]      #A list of tuples containing eligible manufacturers.
-            # print(f"{ret.elig_ups_agents}")
-            
+            ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
+                                agent in self.man_list if 
+                                agent.prod_cap > ret.order_quantity and 
+                                agent.selling_price < ret.selling_price]       #A list of tuples containing eligible manufacturers.
+        
             if not ret.elig_ups_agents:                                        #can't order anything 
                 continue
 
@@ -94,14 +132,13 @@ class Agents:
             n_elig_ups = len(ret.elig_ups_agents)
             n_append = min([n_elig_ups, ret.max_suppliers])
             ret.supplier_set.extend(ret.elig_ups_agents[:n_append])            #Adding eligible upstream agents to supplier set of the agent.
-            
-        for ret in self.ret_list:
+    
             for (agent_id, _) in ret.supplier_set:
-                agent = self.find_agent_by_id(agent_id)                        #Finding a manufacturer object by it's agent_id.
-                agent.customer_set.append(ret.agent_id)                        #Add a retailer id to the list.
-                agent.prod_cap -= ret.order_quantity                           #Stopping manufacturers from accepting infinite orders.
-                agent.received_orders += ret.order_quantity
-                agent.order_quant_tracker.append((ret.agent_id,
+                supplier = self.find_agent_by_id(agent_id)                     #Finding a manufacturer object by it's agent_id.
+                supplier.customer_set.append(ret.agent_id)                     #Add a retailer id to the list.
+                supplier.prod_cap -= ret.order_quantity                        #Stopping manufacturers from accepting infinite orders.
+                supplier.received_orders += ret.order_quantity
+                supplier.order_quant_tracker.append((ret.agent_id,
                                                   ret.order_quantity))         #Keeping track of the order quantity is important for delivering phase.   
             
     def order_to_suppliers(self):
@@ -115,11 +152,27 @@ class Agents:
                         
         shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
+        for sup in self.sup_list:
+            sup.prod_cap = sup.q * sup.working_capital
+            if sup.customer_set:
+                sup.customer_set = list()
                 
+            if sup.received_orders:
+                sup.received_orders = 0.0
+                
+            if sup.order_quant_tracker:
+                sup.order_quant_tracker = list()
+        
         for man in self.man_list:
+            if man.supplier_set:
+                man.supplier_set = list()
+            
+            if man.elig_ups_agents:
+                man.elig_ups_agents = list()
+            
             man.order_quantity = (man.received_orders /man.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
             
-            if man.almost_equal_to_zero(man.received_orders, man.abs_tol):
+            if self.almost_equal_to_zero(man.received_orders, man.abs_tol):
                 continue
           
             man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
@@ -135,14 +188,13 @@ class Agents:
             n_append = min([n_elig_ups, man.max_suppliers])
             man.supplier_set.extend(man.elig_ups_agents[:n_append])
 
-            for man in self.man_list:
-                for (agent_id, _) in man.supplier_set:
-                    agent = self.find_agent_by_id(agent_id)
-                    agent.customer_set.append(man.agent_id)                             #Add a retailer object to the list.
-                    agent.prod_cap -= man.order_quantity                       #Stopping manufacturers from accepting infinite orders.
-                    agent.received_orders += man.order_quantity
-                    agent.order_quant_tracker.append((man.agent_id,
-                                                      man.order_quantity))
+            for (agent_id, _) in man.supplier_set:
+                agent = self.find_agent_by_id(agent_id)
+                agent.customer_set.append(man.agent_id)                        #Add a retailer object to the list.
+                agent.prod_cap -= man.order_quantity                           #Stopping manufacturers from accepting infinite orders.
+                agent.received_orders += man.order_quantity
+                agent.order_quant_tracker.append((man.agent_id,
+                                                  man.order_quantity))
         
     def deliver_to_manufacturers(self):
         """
