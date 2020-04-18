@@ -10,7 +10,7 @@ from agents import Agents
 class Test_Agents(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents('test.xlsx')
+        gen = GenAgents(r'E:\UNI\Python\ABM\3-layer prototype\Farbod\sclib\test_agents_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -52,7 +52,7 @@ class Test_Agents(unittest.TestCase):
 class Test_Agents2(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents('test.xlsx')
+        gen = GenAgents(r'E:\UNI\Python\ABM\3-layer prototype\Farbod\sclib\test_agents_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -67,8 +67,47 @@ class Test_Agents2(unittest.TestCase):
         self.assertEqual(len(manufacturer.order_quant_tracker), 1)
         self.assertEqual(len(retailer.supplier_set), 1)
         self.assertEqual(len(retailer.elig_ups_agents), 1)
-
+        self.assertEqual(retailer.elig_ups_agents[0][0], 2)
+        self.assertEqual(retailer.elig_ups_agents[0][1], manufacturer.selling_price)
+        self.assertEqual(manufacturer.customer_set[0], retailer.agent_id)
+        self.assertEqual(manufacturer.order_quant_tracker[0][0], retailer.agent_id)
+        self.assertEqual(manufacturer.order_quant_tracker[0][1], retailer.order_quantity)
         
+class Test_Agents3(unittest.TestCase):
+    def setUp(self):
+        gen = GenAgents(r'E:\UNI\Python\ABM\3-layer prototype\Farbod\sclib\test_agents_sheets\test_lots_of_agents.xlsx')
+        this = Agents(gen.list_agents)
+        
+        self.this = this
+        
+    def test_lots_of_agents(self):
+        this = self.this
+        self.assertEqual(len(this.list_agents) , 45)
+        self.assertEqual(len(self.this.ret_list) , 15)
+        self.assertEqual(len(self.this.man_list) , 15)
+        self.assertEqual(len(self.this.sup_list) , 15)
+        ret1 = this.ret_list[0]
+        ret6 = this.ret_list[5]
+        ret15 = this.ret_list[14]
+        man1 = this.man_list[0]
+        man6 = this.man_list[5]
+        man15 = this.man_list[14]
+        this.order_to_manufacturers()
+        self.assertEqual(len(ret1.supplier_set), 3)
+        self.assertNotEqual(ret1.supplier_set, ret15.supplier_set)
+        self.assertNotEqual(ret1.elig_ups_agents, ret6.elig_ups_agents)
+        self.assertNotEqual(man1.customer_set, man15.customer_set)
+        self.assertNotEqual(len(man1.customer_set), len(man15.customer_set))
+        # print(len(man1.customer_set))
+        # print(len(man6.customer_set))
+        # print(len(man15.customer_set))
+        self.assertTrue(man1.order_quant_tracker)
+        self.assertTrue(man6.order_quant_tracker)        
+        self.assertNotEqual(len(man1.order_quant_tracker), len(man6.order_quant_tracker))
+        self.assertNotEqual(man1.order_quant_tracker, man6.order_quant_tracker)
+        self.assertNotEqual(man1.order_quant_tracker[0][0], man6.order_quant_tracker[0][0])        
+        self.assertNotEqual(man1.prod_cap, man6.prod_cap)
+        self.assertNotEqual(man1.received_orders, man6.received_orders)
         
 
         

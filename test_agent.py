@@ -39,7 +39,6 @@ class Test_Agent(unittest.TestCase):
         self.assertEqual(self.ret3.sigma_consumer_demand , 10.00)
         self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
         self.assertTrue(self.ret3.consumer_demand)
-        # print(f'consumer_demand = {self.ret3.consumer_demand}' )
 
    
     def test_retailer_attrs(self):

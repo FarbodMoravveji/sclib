@@ -26,6 +26,9 @@ class Agents:
         self._list_agents = _list_agents
         self.__break_list()
         self.__check_duplicate_id()
+        self.__layers_fulfilled()
+        
+        self._do_shuffle = False
         
     @property
     def list_agents(self) -> list:
@@ -57,9 +60,24 @@ class Agents:
                 raise ValueError(f'__check_duplicate_id: Agents.list_agents contains at least one duplicate id')
             else:
                 agents_set.add(elem)
+
+    def __layers_fulfilled(self) -> None:
+        """
+        This method makes sure that there is at least one agent in each layer        
+        """
+        role_set = set()
+        for elem in self.list_agents:
+            role_set.add(elem.role)
+        if len(role_set) < 3:
+            raise ValueError(f"__layers_fulfilled: At least one layer doesn't contain any agents")
+        if len(role_set) > 3:
+            raise ValueError(f"__layers_fulfilled: Model should only consist of three layers, not more")
         
-            
+    def always_shuffle(self):
+        if not self._do_shuffle:
+            self._do_shuffle = True
         
+    
     def __lt__(self, object) -> bool:
         """
         necessary for gaining the ability to make instances of a class comparable.
@@ -94,8 +112,8 @@ class Agents:
         of retailers within it's current step and also facilitates the 
         delivery of the products to the appropriate retailers.
         """
-        
-        shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
+        if self._do_shuffle:
+            shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
         for man in self.man_list:
             man.prod_cap = man.q * man.working_capital
@@ -149,8 +167,8 @@ class Agents:
         the manufacturers within it's current step and also facilitates the 
         delivery of the products to the appropriate manufacturers.
         """
-                        
-        shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
+        if self._do_shuffle:                
+            shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
         for sup in self.sup_list:
             sup.prod_cap = sup.q * sup.working_capital
@@ -170,7 +188,7 @@ class Agents:
             if man.elig_ups_agents:
                 man.elig_ups_agents = list()
             
-            man.order_quantity = (man.received_orders /man.max_suppliers)               #manufacturers order to max_suppliers suppliers in equal volumes.
+            man.order_quantity = (man.received_orders /man.max_suppliers)      #manufacturers order to max_suppliers suppliers in equal volumes.
             
             if self.almost_equal_to_zero(man.received_orders, man.abs_tol):
                 continue
@@ -203,34 +221,40 @@ class Agents:
         to uncertainty; delivery is completed with probability p_delivery,
         otherwise no product is delivered.
         """
-        temp_list = []
-
+        for man in self.man_list:
+            
+            if man.received_productions:
+                man.received_productions = list()
+        
         for sup in self.sup_list:  
             
+            # if sup.delivery_amount:
+            #     sup.delivery_amount = list()
+            
             if len(sup.customer_set) == 0:                                     #Making sure supplier  has received some orders.
-                return
+                continue
             else:
                 sup.step_production = sup.received_orders * (np.random.binomial
-                                                             (n = 1, 
+                                                              (n = 1, 
                                                               p = sup.p_delivery)) #Supplier produces full order amount by probability p_delivery and zero by 1-p_delivery.
                 if sup.step_production == 0:
-                    return
+                    continue
                 else:
+                    #ERROR: customer set contains agent id
                     sup.delivery_amount =[(agent.agent_id, 
-                                           sup.step_production * 
-                                           (agent.order_quantity / 
+                                            sup.step_production * 
+                                            (agent.order_quantity / 
                                             sup.received_orders)) for agent
                                           in sup.customer_set]                 #To deliver in amounts related to the portion of custumer order to total orders. 
-                    for tup in sup.delivery_amount:                            #Making a list of customer agents to iterate over.
-                        temp_list.append(agent for agent in self.man_list
-                                         if tup[0] == agent.agent_id)
                         
-                    for agent in temp_list:                                    #Iterating over customer agents and delivering proportionally.
+                    for (agent_id, _) in sup.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
                         counter = 0
+                        agent = self.find_agent_by_id(agent_id)
                         agent.received_productions.append(
                             sup.delivery_amount[counter][1],
                             sup.selling_price)                                 #Kepping records of received products and their prices for customers.
                         counter += 1
+                    
                     step_profit = sup.input_margin * sup.step_production - sup.interest_rate * sup.working_capital  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += sup.working_capital + step_profit                        # Updating suppliers' working capital.
 
@@ -241,7 +265,11 @@ class Agents:
         to uncertainty and is completed with probability p_delivery,
         otherwise no product is delivered.
         """
-        temp_list = []
+        
+        for ret in self.ret_list:
+            
+            if ret.received_productions:
+                ret.received_productions = list()
         
         for man in self.man_list:
             total_received_production = 0
@@ -254,23 +282,24 @@ class Agents:
                 total_money_paid = (man.received_productions[i][0] * man.received_productions[i][1])
     
             if len(man.customer_set) == 0 or total_received_production == 0:         
-                return
+                continue
             else:
-                man.step_production = man.received_productions * (np.random.binomial
+                man.step_production = man.total_received_production * (np.random.binomial
                                                                   (n = 1, p = man.p_delivery)) #Manufacturer produces full order amount by probability p_delivery only if all its suppliers deliver fully.
                 if man.step_production == 0:
-                    return
+                    continue
                 else:
+                    #ERROR: customer set contains only agent id
                     man.delivery_amount = [(agent.agent_id, man.step_production * 
                                             (agent.order_quantity / man.received_orders))
-                                           for agent in man.customer_set]      #Delivering in amounts related to the portion of custumer order to total orders. 
-                    for tup in man.delivery_amount:
-                        temp_list.append(agent for agent in self.ret_list if 
-                                         tup[0] == agent.agent_id)        
-                    for agent in temp_list:
+                                            for agent in man.customer_set]      #Delivering in amounts related to the portion of custumer order to total orders. 
+       
+                    for (agent_id, _) in man.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
                         counter = 0
+                        agent = self.find_agent_by_id(agent_id)
                         agent.received_productions.append(
-                            man.delivery_amount[counter][1], man.selling_price)  #Kepping records of received products and their prices for customers.
+                            man.delivery_amount[counter][1],
+                            man.selling_price)                                 #Kepping records of received products and their prices for customers.
                         counter += 1
                     
                     unit_production_cost = total_money_paid / total_received_production
@@ -292,10 +321,10 @@ class Agents:
                 total_money_paid = (ret.received_productions[i][0] * ret.received_productions[i][1]) # Calculating total money paid.
             
             if len(ret.customer_set) == 0 or total_received_production == 0:         
-                return
+                continue
             
             else:
-                 unit_production_cost = total_money_paid / total_received_production
-                 step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - (ret.interest_rate * ret.working_capital)
-                 ret.working_capital += ret.working_capital + step_profit
+                  unit_production_cost = total_money_paid / total_received_production
+                  step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - (ret.interest_rate * ret.working_capital)
+                  ret.working_capital += ret.working_capital + step_profit
 

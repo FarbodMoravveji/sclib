@@ -4,7 +4,7 @@ from generate_agents import GenAgents
 class Test_GenAgents(unittest.TestCase):
     
     def setUp(self):
-        obj = GenAgents("test.xlsx")
+        obj = GenAgents(r'E:\UNI\Python\ABM\3-layer prototype\Farbod\sclib\test_agents_sheets\test.xlsx')
         
         self.GA = obj
         
