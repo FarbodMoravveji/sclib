@@ -93,7 +93,7 @@ class Agents:
         Return Type: bool
         
         """
-        return  math.isclose(value, 0,abs_tol = abs_tol)
+        return  math.isclose(value, 0, abs_tol = abs_tol)
 
         
     def find_agent_by_id(self, unique_id):
@@ -150,18 +150,9 @@ class Agents:
             
             temp.sort(key = itemgetter(1))
             
-            for i in range(len(temp)):
-                ret.elig_ups_agents.append(temp[i][0])    
+            for (agent_id, _) in temp:
+                ret.elig_ups_agents.append(agent_id)    
             
-            # ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-            #                     agent in self.man_list if 
-            #                     agent.prod_cap > ret.order_quantity and 
-            #                     agent.selling_price < ret.selling_price]       
-        
-            # if not ret.elig_ups_agents:                                        
-            #     continue
-
-            # ret.elig_ups_agents.sort(key = itemgetter(1))
             n_elig_ups = len(ret.elig_ups_agents)
             n_append = min([n_elig_ups, ret.max_suppliers])
             ret.supplier_set.extend(ret.elig_ups_agents[:n_append])            #Adding eligible upstream agents to supplier set of the agent.
@@ -214,21 +205,15 @@ class Agents:
                     agent in self.sup_list if 
                     agent.prod_cap >= man.order_quantity and 
                     agent.selling_price <= man.selling_price]
-            
-            # man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-            #                     agent in self.sup_list if 
-            #                     agent.prod_cap >= man.order_quantity and 
-            #                     agent.selling_price <= man.selling_price]      #A list of tuples containing eligible suppliers.
 
             if not temp:
                 continue
             
             temp.sort(key = itemgetter(1))
             
-            for i in range(len(temp)):
-                man.elig_ups_agents.append(temp[i][0])
+            for (agent_id, _) in temp:
+                man.elig_ups_agents.append(agent_id)
             
-            # man.elig_ups_agents.sort(key = itemgetter(1))
             n_elig_ups = len(man.elig_ups_agents)
             n_append = min([n_elig_ups, man.max_suppliers])
             man.supplier_set.extend(man.elig_ups_agents[:n_append])
@@ -250,12 +235,10 @@ class Agents:
         """
         
         for man in self.man_list:
-            
             if man.received_productions:
                 man.received_productions = list()
         
         for sup in self.sup_list:  
-            
             temp = list()
             
             if len(sup.customer_set) == 0:                                     #Making sure supplier  has received some orders.
@@ -265,7 +248,7 @@ class Agents:
                 sup.step_production = sup.received_orders * (np.random.binomial
                                                               (n = 1, 
                                                               p = sup.p_delivery)) #Supplier produces full order amount by probability p_delivery and zero by 1-p_delivery.
-                if sup.step_production == 0:
+                if self.almost_equal_to_zero(sup.step_production, sup.abs_tol):
                     continue
                 else:
                     
@@ -278,15 +261,12 @@ class Agents:
                                             sup.received_orders)) for agent
                                           in temp]                 #To deliver in amounts related to the portion of custumer order to total orders. 
                         
-                    for (agent_id, _) in sup.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
-                        counter = 0
+                    for (agent_id, portion) in sup.delivery_amount:            #Iterating over customer agents and delivering proportionally.
                         agent = self.find_agent_by_id(agent_id)
                         agent.received_productions.append(
-                            sup.delivery_amount[counter][1],
-                            sup.selling_price)                                 #Kepping records of received products and their prices for customers.
-                        counter += 1
+                            portion, sup.selling_price)                        #Kepping records of received products and their prices for customers.
                     
-                    step_profit = sup.input_margin * sup.step_production - sup.interest_rate * sup.working_capital  #Calculating profit using a fixed margin for suppliers
+                    step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += sup.working_capital + step_profit                        # Updating suppliers' working capital.
 
     def deliver_to_retailers(self):
@@ -307,18 +287,18 @@ class Agents:
             total_money_paid = 0
             temp = list()
       
-            for i in range(len(man.received_productions)):                     #Calculating total received productions.
-                total_received_production += (man.received_productions[i][0])  #WHAT if the length is ZERO?
+            for (amount, _) in man.received_productions:                     #Calculating total received productions.
+                total_received_production += amount  #WHAT if the length is ZERO?
                 
-            for i in range(len(man.received_productions)):                     #Calculating total money paid.
-                total_money_paid = (man.received_productions[i][0] * man.received_productions[i][1])
+            for (amount, price) in man.received_productions:                     #Calculating total money paid.
+                total_money_paid += amount * price
     
-            if len(man.customer_set) == 0 or total_received_production == 0:         
+            if len(man.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, man.abs_tol):       
                 continue
             else:
                 man.step_production = man.total_received_production * (np.random.binomial
                                                                   (n = 1, p = man.p_delivery)) #Manufacturer produces full order amount by probability p_delivery only if all its suppliers deliver fully.
-                if man.step_production == 0:
+                if self.almost_equal_to_zero(man.step_production, man.abs_tol):
                     continue
                 else:
 
@@ -329,16 +309,13 @@ class Agents:
                                             (agent.order_quantity / man.received_orders))
                                             for agent in temp]                 #Delivering in amounts related to the portion of custumer order to total orders. 
        
-                    for (agent_id, _) in man.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
-                        counter = 0
+                    for (agent_id, portion) in man.delivery_amount:            #Iterating over customer agents and delivering proportionally.
                         agent = self.find_agent_by_id(agent_id)
                         agent.received_productions.append(
-                            man.delivery_amount[counter][1],
-                            man.selling_price)                                 #Kepping records of received products and their prices for customers.
-                        counter += 1
+                            portion, man.selling_price)                        #Kepping records of received products and their prices for customers.
                     
                     unit_production_cost = total_money_paid / total_received_production
-                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - (man.interest_rate * man.working_capital)
+                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital)
                     man.working_capital += man.working_capital + step_profit
 
     def calculate_retailer_profit(self):
@@ -351,15 +328,15 @@ class Agents:
             total_received_production = 0
             total_money_paid = 0
 
-            for i in range(len(ret.received_productions)):                    #Calculating total received productions.
-                total_received_production += (ret.received_productions[i][0]) #WHAT if the length is ZERO?                   
-                total_money_paid = (ret.received_productions[i][0] * ret.received_productions[i][1]) # Calculating total money paid.
+            for (amount, price) in ret.received_productions:                   #Calculating total received productions.
+                total_received_production += amount                           #WHAT if the length is ZERO?                   
+                total_money_paid += amount * price                             # Calculating total money paid.
             
-            if len(ret.customer_set) == 0 or total_received_production == 0:         
+            if len(ret.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
                 continue
             
             else:
                   unit_production_cost = total_money_paid / total_received_production
-                  step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - (ret.interest_rate * ret.working_capital)
+                  step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
 

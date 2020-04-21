@@ -135,7 +135,6 @@ class Test_order_to_suppliers1(unittest.TestCase):
         self.assertEqual(supplier.customer_set[0], manufacturer.agent_id)
         self.assertEqual(supplier.order_quant_tracker[0][0], manufacturer.agent_id)
         self.assertEqual(supplier.order_quant_tracker[0][1], manufacturer.order_quantity)
-        
     
 
 if __name__ == '__main__':
