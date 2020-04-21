@@ -112,6 +112,8 @@ class Agents:
         of retailers within it's current step and also facilitates the 
         delivery of the products to the appropriate retailers.
         """
+        temp = list()
+        
         if self._do_shuffle:
             shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
@@ -133,25 +135,38 @@ class Agents:
             if ret.elig_ups_agents:
                 ret.elig_ups_agents = list()
             
-            ret.order_quantity = ((ret.consumer_demand) / (ret.max_suppliers))
+            ret.order_quantity = (ret.consumer_demand / ret.max_suppliers)
             
             if self.almost_equal_to_zero(ret.order_quantity, ret.abs_tol):
                 continue
             
-            ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-                                agent in self.man_list if 
-                                agent.prod_cap > ret.order_quantity and 
-                                agent.selling_price < ret.selling_price]       #A list of tuples containing eligible manufacturers.
-        
-            if not ret.elig_ups_agents:                                        #can't order anything 
+            temp = [(agent.agent_id, agent.selling_price) for                  #A list of tuples containing eligible manufacturers.
+                    agent in self.man_list if 
+                    agent.prod_cap > ret.order_quantity and 
+                    agent.selling_price < ret.selling_price]
+           
+            if not temp:
                 continue
+            
+            temp.sort(key = itemgetter(1))
+            
+            for i in range(len(temp)):
+                ret.elig_ups_agents.append(temp[i][0])    
+            
+            # ret.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
+            #                     agent in self.man_list if 
+            #                     agent.prod_cap > ret.order_quantity and 
+            #                     agent.selling_price < ret.selling_price]       
+        
+            # if not ret.elig_ups_agents:                                        
+            #     continue
 
-            ret.elig_ups_agents.sort(key = itemgetter(1))                      #Sorting the list of eligible up-stream agents based on their prices.
+            # ret.elig_ups_agents.sort(key = itemgetter(1))
             n_elig_ups = len(ret.elig_ups_agents)
             n_append = min([n_elig_ups, ret.max_suppliers])
             ret.supplier_set.extend(ret.elig_ups_agents[:n_append])            #Adding eligible upstream agents to supplier set of the agent.
     
-            for (agent_id, _) in ret.supplier_set:
+            for agent_id in ret.supplier_set:
                 supplier = self.find_agent_by_id(agent_id)                     #Finding a manufacturer object by it's agent_id.
                 supplier.customer_set.append(ret.agent_id)                     #Add a retailer id to the list.
                 supplier.prod_cap -= ret.order_quantity                        #Stopping manufacturers from accepting infinite orders.
@@ -167,6 +182,8 @@ class Agents:
         the manufacturers within it's current step and also facilitates the 
         delivery of the products to the appropriate manufacturers.
         """
+        temp = list()
+        
         if self._do_shuffle:                
             shuffle(self.man_list)                                                 #No agent has priority over others in its stage.
         
@@ -193,20 +210,30 @@ class Agents:
             if self.almost_equal_to_zero(man.received_orders, man.abs_tol):
                 continue
           
-            man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
-                                agent in self.sup_list if 
-                                agent.prod_cap >= man.order_quantity and 
-                                agent.selling_price <= man.selling_price]      #A list of tuples containing eligible suppliers.
+            temp = [(agent.agent_id, agent.selling_price) for 
+                    agent in self.sup_list if 
+                    agent.prod_cap >= man.order_quantity and 
+                    agent.selling_price <= man.selling_price]
+            
+            # man.elig_ups_agents = [(agent.agent_id, agent.selling_price) for 
+            #                     agent in self.sup_list if 
+            #                     agent.prod_cap >= man.order_quantity and 
+            #                     agent.selling_price <= man.selling_price]      #A list of tuples containing eligible suppliers.
 
-            if not man.elig_ups_agents:
+            if not temp:
                 continue
             
-            man.elig_ups_agents.sort(key = itemgetter(1))
+            temp.sort(key = itemgetter(1))
+            
+            for i in range(len(temp)):
+                man.elig_ups_agents.append(temp[i][0])
+            
+            # man.elig_ups_agents.sort(key = itemgetter(1))
             n_elig_ups = len(man.elig_ups_agents)
             n_append = min([n_elig_ups, man.max_suppliers])
             man.supplier_set.extend(man.elig_ups_agents[:n_append])
 
-            for (agent_id, _) in man.supplier_set:
+            for agent_id in man.supplier_set:
                 agent = self.find_agent_by_id(agent_id)
                 agent.customer_set.append(man.agent_id)                        #Add a retailer object to the list.
                 agent.prod_cap -= man.order_quantity                           #Stopping manufacturers from accepting infinite orders.
@@ -221,6 +248,7 @@ class Agents:
         to uncertainty; delivery is completed with probability p_delivery,
         otherwise no product is delivered.
         """
+        
         for man in self.man_list:
             
             if man.received_productions:
@@ -228,11 +256,11 @@ class Agents:
         
         for sup in self.sup_list:  
             
-            # if sup.delivery_amount:
-            #     sup.delivery_amount = list()
+            temp = list()
             
             if len(sup.customer_set) == 0:                                     #Making sure supplier  has received some orders.
                 continue
+            
             else:
                 sup.step_production = sup.received_orders * (np.random.binomial
                                                               (n = 1, 
@@ -240,12 +268,15 @@ class Agents:
                 if sup.step_production == 0:
                     continue
                 else:
-                    #ERROR: customer set contains agent id
+                    
+                    for agent_id in sup.customer_set:
+                        temp.append(self.find_agent_by_id(agent_id))
+                        
                     sup.delivery_amount =[(agent.agent_id, 
                                             sup.step_production * 
                                             (agent.order_quantity / 
                                             sup.received_orders)) for agent
-                                          in sup.customer_set]                 #To deliver in amounts related to the portion of custumer order to total orders. 
+                                          in temp]                 #To deliver in amounts related to the portion of custumer order to total orders. 
                         
                     for (agent_id, _) in sup.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
                         counter = 0
@@ -274,6 +305,7 @@ class Agents:
         for man in self.man_list:
             total_received_production = 0
             total_money_paid = 0
+            temp = list()
       
             for i in range(len(man.received_productions)):                     #Calculating total received productions.
                 total_received_production += (man.received_productions[i][0])  #WHAT if the length is ZERO?
@@ -289,10 +321,13 @@ class Agents:
                 if man.step_production == 0:
                     continue
                 else:
-                    #ERROR: customer set contains only agent id
+
+                    for agent_id in man.customer_set:
+                        temp.append(self.find_agent_by_id(agent_id))
+
                     man.delivery_amount = [(agent.agent_id, man.step_production * 
                                             (agent.order_quantity / man.received_orders))
-                                            for agent in man.customer_set]      #Delivering in amounts related to the portion of custumer order to total orders. 
+                                            for agent in temp]                 #Delivering in amounts related to the portion of custumer order to total orders. 
        
                     for (agent_id, _) in man.delivery_amount:                  #Iterating over customer agents and delivering proportionally.
                         counter = 0
