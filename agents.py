@@ -29,6 +29,7 @@ class Agents:
         self.__layers_fulfilled()
         
         self._do_shuffle = False
+        self._node_level_disruption = False
         
     @property
     def list_agents(self) -> list:
@@ -76,6 +77,10 @@ class Agents:
     def always_shuffle(self):
         if not self._do_shuffle:
             self._do_shuffle = True
+            
+    def random_node_level_disruption(self):
+        if not self._node_level_disruption:
+            self._node_level_disruption = True
         
     
     def __lt__(self, object) -> bool:
@@ -245,9 +250,15 @@ class Agents:
                 continue
             
             else:
-                sup.step_production = sup.received_orders * (np.random.binomial
+                
+                if self._node_level_disruption:                                #Node level disruption is optional.
+                    sup.step_production = sup.received_orders * (np.random.binomial
                                                               (n = 1, 
                                                               p = sup.p_delivery)) #Supplier produces full order amount by probability p_delivery and zero by 1-p_delivery.
+                
+                else:
+                    sup.step_production = sup.received_orders
+                
                 if self.almost_equal_to_zero(sup.step_production, sup.abs_tol):
                     continue
                 else:
@@ -263,8 +274,8 @@ class Agents:
                         
                     for (agent_id, portion) in sup.delivery_amount:            #Iterating over customer agents and delivering proportionally.
                         agent = self.find_agent_by_id(agent_id)
-                        agent.received_productions.append(
-                            portion, sup.selling_price)                        #Kepping records of received products and their prices for customers.
+                        agent.received_productions.append((
+                            portion, sup.selling_price))                        #Kepping records of received products and their prices for customers.
                     
                     step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += sup.working_capital + step_profit                        # Updating suppliers' working capital.
@@ -287,17 +298,23 @@ class Agents:
             total_money_paid = 0
             temp = list()
       
-            for (amount, _) in man.received_productions:                     #Calculating total received productions.
-                total_received_production += amount  #WHAT if the length is ZERO?
+            for (amount, _) in man.received_productions:                       #Calculating total received productions.
+                total_received_production += amount                            #WHAT if the length is ZERO?
                 
-            for (amount, price) in man.received_productions:                     #Calculating total money paid.
+            for (amount, price) in man.received_productions:                   #Calculating total money paid.
                 total_money_paid += amount * price
     
             if len(man.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, man.abs_tol):       
                 continue
             else:
-                man.step_production = man.total_received_production * (np.random.binomial
-                                                                  (n = 1, p = man.p_delivery)) #Manufacturer produces full order amount by probability p_delivery only if all its suppliers deliver fully.
+                if self._node_level_disruption:                                #Node level disruption is optional.
+                    man.step_production = man.received_orders * (np.random.binomial
+                                                              (n = 1, 
+                                                              p = man.p_delivery)) #manufacturer produces full order amount by probability p_delivery and zero by 1-p_delivery.
+                
+                else:
+                    man.step_production = man.received_orders
+                
                 if self.almost_equal_to_zero(man.step_production, man.abs_tol):
                     continue
                 else:
@@ -311,8 +328,8 @@ class Agents:
        
                     for (agent_id, portion) in man.delivery_amount:            #Iterating over customer agents and delivering proportionally.
                         agent = self.find_agent_by_id(agent_id)
-                        agent.received_productions.append(
-                            portion, man.selling_price)                        #Kepping records of received products and their prices for customers.
+                        agent.received_productions.append((
+                            portion, man.selling_price))                      #Kepping records of received products and their prices for customers.
                     
                     unit_production_cost = total_money_paid / total_received_production
                     step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital)
@@ -329,10 +346,10 @@ class Agents:
             total_money_paid = 0
 
             for (amount, price) in ret.received_productions:                   #Calculating total received productions.
-                total_received_production += amount                           #WHAT if the length is ZERO?                   
+                total_received_production += amount                            #WHAT if the length is ZERO?                   
                 total_money_paid += amount * price                             # Calculating total money paid.
             
-            if len(ret.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
+            if self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
                 continue
             
             else:

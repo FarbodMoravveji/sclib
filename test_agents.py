@@ -38,7 +38,7 @@ class Test_Agents(unittest.TestCase):
         a = this.find_agent_by_id(1)
         self.assertIsInstance(a, object)
    
-class Test_order_to_manufscturers1(unittest.TestCase):
+class Test_order_to_manufacturers1(unittest.TestCase):
     
     def setUp(self):
         gen = GenAgents(r'test_agents_sheets\test.xlsx')
@@ -57,7 +57,7 @@ class Test_order_to_manufscturers1(unittest.TestCase):
         self.assertTrue(manufacturer.prod_cap)
         
         
-class Test_order_to_manufscturers2(unittest.TestCase):
+class Test_order_to_manufacturers2(unittest.TestCase):
     
     def setUp(self):
         gen = GenAgents(r'test_agents_sheets\test.xlsx')
@@ -80,7 +80,7 @@ class Test_order_to_manufscturers2(unittest.TestCase):
         self.assertEqual(manufacturer.order_quant_tracker[0][0], retailer.agent_id)
         self.assertEqual(manufacturer.order_quant_tracker[0][1], retailer.order_quantity)
         
-class Test_order_to_manufscturers3(unittest.TestCase):
+class Test_order_to_manufacturers3(unittest.TestCase):
     def setUp(self):
         gen = GenAgents(r'test_agents_sheets\test_lots_of_agents.xlsx')
         this = Agents(gen.list_agents)
@@ -113,6 +113,25 @@ class Test_order_to_manufscturers3(unittest.TestCase):
         self.assertNotEqual(man1.received_orders, man6.received_orders)
         
 class Test_order_to_suppliers1(unittest.TestCase):
+    
+    def setUp(self):
+        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        this = Agents(gen.list_agents)
+        
+        self.this = this
+    
+    def test_order_to_suppliers(self):
+        this = self.this
+        supplier = this.sup_list[0]
+        manufacturer = this.man_list[0]
+        this.order_to_manufacturers()
+        this.order_to_suppliers()
+        self.assertTrue(manufacturer.elig_ups_agents)
+        self.assertTrue(supplier.received_orders)
+        self.assertTrue(supplier.order_quant_tracker)
+        self.assertTrue(supplier.prod_cap)
+
+class Test_order_to_suppliers2(unittest.TestCase):
     
     def setUp(self):
         gen = GenAgents(r'test_agents_sheets\test.xlsx')
