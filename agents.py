@@ -107,22 +107,22 @@ class Agents:
         """
         return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
     
-    def visualize_working_capital_dynamics(self):
-        """
-        creates an n*m matrix where each row resembles an agent (n agents) and 
-        each column resembles a step (m steps).
-        """
-        working_capital_matrix = np.zeros((len(self.list_agents), self._num_steps + 1))
+    # def visualize_working_capital_dynamics(self):
+    #     """
+    #     creates an n*m matrix where each row resembles an agent (n agents) and 
+    #     each column resembles a step (m steps).
+    #     """
+    #     working_capital_matrix = np.zeros((len(self.list_agents), self._num_steps + 1))
         
-        for elem in self.list_agents:
-            for step in range(self.num_steps + 1):
-                working_capital_matrix[elem][step] = elem.log_working_capital[step]
+    #     for elem in self.list_agents:
+    #         for step in range(self.num_steps + 1):
+    #             working_capital_matrix[elem][step] = elem.log_working_capital[step]
         
-        x = range(self.num_steps + 1)
-        for row in working_capital_matrix:
-            plt.plot(x, row)
+    #     x = range(self.num_steps + 1)
+    #     for row in working_capital_matrix:
+    #         plt.plot(x, row)
     
-    # Behavioral functions
+    # Behavioral methods
     def order_to_manufacturers(self) -> None:
         """
         This method is responsible for handling the retailers' ordering process.
@@ -377,3 +377,16 @@ class Agents:
                   step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
 
+#Advancement methods
+    def upstream_flow(self):
+        self.order_to_manufacturers()
+        self.order_to_suppliers()
+        
+    def downstream_flow(self):
+        self.deliver_to_manufacturers()
+        self.deliver_to_retailers()
+        self.calculate_retailer_profit()
+        
+    def one_round(self):
+        self.upstream_flow()
+        self.downstream_flow()
