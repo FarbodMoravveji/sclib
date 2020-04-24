@@ -18,7 +18,7 @@ class Test_Agent(unittest.TestCase):
         self.sup3 = a9
   
     def test_q(self):
-        self.assertEqual(self.ret1.q, 0.99)
+        self.assertEqual(self.ret1.q, 0.90)
         
 
     def test_retailer_is(self):
@@ -38,11 +38,11 @@ class Test_Agent(unittest.TestCase):
         self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
         self.assertEqual(self.ret3.sigma_consumer_demand , 10.00)
         self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
-        self.assertTrue(self.ret3.consumer_demand)
+        self.assertFalse(self.ret3.consumer_demand)
 
    
     def test_retailer_attrs(self):
-        self.assertNotEqual(self.ret1.consumer_demand , self.ret3.consumer_demand)
+        self.assertEqual(self.ret1.consumer_demand , self.ret3.consumer_demand)
         self.assertFalse(self.ret1.supplier_set)
         self.assertFalse(self.ret1.order_quantity)
         self.assertEqual(self.ret1.supplier_set, self.ret1.received_productions)
@@ -55,16 +55,16 @@ class Test_Agent(unittest.TestCase):
         self.assertFalse(self.man1.order_quant_tracker)
         self.assertFalse(self.man1.step_production)
         self.assertFalse(self.man1.delivery_amount)
-        self.assertEqual(self.man1.prod_cap, 117)
-        self.assertEqual(self.man3.prod_cap, 90)
+        self.assertEqual(self.man1.prod_cap, 0)
+        self.assertEqual(self.man3.prod_cap, 0)
         
     def test_suppliers_attrs(self):
         self.assertFalse(self.sup1.consumer_set)
         self.assertFalse(self.sup1.received_orders)
         self.assertFalse(self.sup1.step_production)
         self.assertFalse(self.sup1.delivery_amount)
-        self.assertEqual(self.sup1.prod_cap, 126)
-        self.assertEqual(self.sup3.prod_cap, 90)        
+        self.assertEqual(self.sup1.prod_cap, 0)
+        self.assertEqual(self.sup3.prod_cap, 0)        
         
 if __name__ == '__main__':
     unittest.main()

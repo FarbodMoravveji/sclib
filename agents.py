@@ -4,11 +4,12 @@ Created on Sun Apr  5 19:15:35 2020
 
 @author: Farbod
 """
-import numpy as np
 from operator import itemgetter
 import math
 from typing import List
 from random import shuffle
+import numpy as np
+import matplotlib.pyplot as plt
 from agent import Agent
 
 class Agents:
@@ -31,6 +32,7 @@ class Agents:
         self._do_shuffle = False
         self._node_level_disruption = False
         
+        self.num_steps = 0
     @property
     def list_agents(self) -> list:
         return self._list_agents
@@ -106,7 +108,21 @@ class Agents:
         Finds an agent whose id is equivalent to the unique_id proovided
         """
         return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
+    
+    def visualize_working_capital_dynamics(self):
+        """
+        creates an n*m matrix where each row resembles an agent (n agents) and 
+        each column resembles a step (m steps).
+        """
+        working_capital_matrix = np.zeros((len(self.list_agents), self._num_steps + 1))
         
+        for elem in self.list_agents:
+            for step in range(self.num_steps + 1):
+                working_capital_matrix[elem][step] = elem.log_working_capital[step]
+        
+        x = range(self.num_steps + 1)
+        for row in working_capital_matrix:
+            plt.plot(x, row)
     
     # Behavioral functions
     def order_to_manufacturers(self) -> None:
@@ -117,8 +133,10 @@ class Agents:
         of retailers within it's current step and also facilitates the 
         delivery of the products to the appropriate retailers.
         """
-        temp = list()
+        self.num_steps += 1
         
+        temp = list()
+
         if self._do_shuffle:
             shuffle(self.ret_list)                                                 #No agent has priority over others in its stage.
         
@@ -134,6 +152,9 @@ class Agents:
                 man.order_quant_tracker = list()
         
         for ret in self.ret_list:
+            rand_value = np.random.normal(ret.mu_consumer_demand, ret.sigma_consumer_demand)
+            self.consumer_demand = 0.0 if rand_value < 0 else rand_value       #Assigning consumer demand
+            
             if ret.supplier_set:
                 ret.supplier_set = list()
             
@@ -247,6 +268,7 @@ class Agents:
             temp = list()
             
             if len(sup.customer_set) == 0:                                     #Making sure supplier  has received some orders.
+                sup.log_working_capital.append(sup.working_capital)
                 continue
             
             else:
@@ -260,6 +282,7 @@ class Agents:
                     sup.step_production = sup.received_orders
                 
                 if self.almost_equal_to_zero(sup.step_production, sup.abs_tol):
+                    sup.log_working_capital.append(sup.working_capital)
                     continue
                 else:
                     
@@ -270,7 +293,7 @@ class Agents:
                                             sup.step_production * 
                                             (agent.order_quantity / 
                                             sup.received_orders)) for agent
-                                          in temp]                 #To deliver in amounts related to the portion of custumer order to total orders. 
+                                          in temp]                             #To deliver in amounts related to the portion of custumer order to total orders. 
                         
                     for (agent_id, portion) in sup.delivery_amount:            #Iterating over customer agents and delivering proportionally.
                         agent = self.find_agent_by_id(agent_id)
@@ -278,7 +301,8 @@ class Agents:
                             portion, sup.selling_price))                        #Kepping records of received products and their prices for customers.
                     
                     step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
-                    sup.working_capital += sup.working_capital + step_profit                        # Updating suppliers' working capital.
+                    sup.working_capital += sup.working_capital + step_profit                       # Updating suppliers' working capital.
+                    sup.log_working_capital.append(sup.working_capital)
 
     def deliver_to_retailers(self):
         """
@@ -305,6 +329,7 @@ class Agents:
                 total_money_paid += amount * price
     
             if len(man.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, man.abs_tol):       
+                man.log_working_capital = man.working_capital
                 continue
             else:
                 if self._node_level_disruption:                                #Node level disruption is optional.
@@ -316,6 +341,7 @@ class Agents:
                     man.step_production = man.received_orders
                 
                 if self.almost_equal_to_zero(man.step_production, man.abs_tol):
+                    man.log_working_capital = man.working_capital
                     continue
                 else:
 
@@ -334,6 +360,7 @@ class Agents:
                     unit_production_cost = total_money_paid / total_received_production
                     step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital)
                     man.working_capital += man.working_capital + step_profit
+                    man.log_working_capital = man.working_capital
 
     def calculate_retailer_profit(self):
         """
@@ -350,10 +377,12 @@ class Agents:
                 total_money_paid += amount * price                             # Calculating total money paid.
             
             if self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
+                ret.log_working_capital = ret.working_capital
                 continue
             
             else:
                   unit_production_cost = total_money_paid / total_received_production
                   step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
+                  ret.log_working_capital = ret.working_capital
 

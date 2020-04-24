@@ -29,6 +29,7 @@ class Agent(Parameters):
     step_production: float
     delivery_amount: list
     elig_ups_agents: list
+    log_working_capital: list
     
     
     
@@ -70,6 +71,8 @@ class Agent(Parameters):
         self.max_suppliers = max_suppliers
         self.input_margin = input_margin
         self.interest_rate = interest_rate
+        self.log_working_capital = list()
+        self.log_working_capital.append(self.working_capital)
         self.__check_role()
         self.__assign_role_specific_attributes()
     
@@ -78,18 +81,15 @@ class Agent(Parameters):
         Private method to add the following attributes to the following roles
 
         role             consumer_demand    supplier_set  customer_set  production_capacity  received_orders  received_productions  order_quant_tracker order_quantity step_production delivery_amount elig_ups_agents
-        retailer                 Y                  Y             N               N                  N                Y                  N                   Y             N                   N           Y
-        manufacturer             N                  Y             Y               Y                  Y                Y                  Y                   Y             Y                   Y           Y
+        retailer                 Y                  Y             N               N                  N                Y                  N                   Y             N                   N           Y                     
+        manufacturer             N                  Y             Y               Y                  Y                Y                  Y                   Y             Y                   Y           Y                     
         supplier                 N                  N             Y               Y                  Y                N                  Y                   N             Y                   Y           N
         """
         
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == self.retailer:
-            #print(type(self.mu_consumer_demand))
-            rand_value = np.random.normal(self.mu_consumer_demand, self.sigma_consumer_demand)
-            self.consumer_demand = 0.0 if rand_value < 0 else rand_value
-            # print(f"id = {self.agent_id}, rand_value = {rand_value}, consumer_demand = {self.consumer_demand}")
+            self.consumer_demand = 0.0 
             self.supplier_set = list()
             self.received_productions = list()
             self.order_quantity = 0.0
