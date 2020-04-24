@@ -18,7 +18,7 @@ class Test_Agents(unittest.TestCase):
     
     def test_list_agents(self):
         self.assertEqual(len(self.this.list_agents) , 3)
-        
+
     def test_ret_list(self):
         self.assertEqual(len(self.this.ret_list) , 1)
            
@@ -51,6 +51,7 @@ class Test_order_to_manufacturers1(unittest.TestCase):
         retailer = this.ret_list[0]
         manufacturer = this.man_list[0]
         this.order_to_manufacturers()
+        self.assertTrue(retailer.consumer_demand)
         self.assertTrue(retailer.elig_ups_agents)
         self.assertTrue(manufacturer.received_orders)
         self.assertTrue(manufacturer.order_quant_tracker)
@@ -154,7 +155,115 @@ class Test_order_to_suppliers2(unittest.TestCase):
         self.assertEqual(supplier.customer_set[0], manufacturer.agent_id)
         self.assertEqual(supplier.order_quant_tracker[0][0], manufacturer.agent_id)
         self.assertEqual(supplier.order_quant_tracker[0][1], manufacturer.order_quantity)
+        
+class Test_deliver_to_manufacturers(unittest.TestCase):
     
+    def setUp(self):
+        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        this = Agents(gen.list_agents)
+        
+        self.this = this
+        
+    def test_1_rep(self):
+        this = self.this
+        supplier = this.sup_list[0]
+        manufacturer = this.man_list[0]
+        iwcap = supplier.working_capital
+        
+        this.order_to_manufacturers()
+        this.order_to_suppliers()
+        this.deliver_to_manufacturers()
+        
+        self.assertEqual(supplier.delivery_amount[0][0], 2)
+        self.assertEqual(supplier.delivery_amount[0][1], 
+                         supplier.step_production * (manufacturer.order_quantity / supplier.received_orders))
+        self.assertEqual(manufacturer.received_productions[0][0], 
+                         supplier.step_production * (manufacturer.order_quantity / supplier.received_orders))
+        self.assertEqual(manufacturer.received_productions[0][1], supplier.selling_price)
+        self.assertGreater(supplier.working_capital, iwcap)
+        
+    def test_3_reps(self):
+        this = self.this
+        supplier = this.sup_list[0]
+        manufacturer = this.man_list[0]
+        wcap = list()
+        
+        for i in range(3):
+            this.order_to_manufacturers()
+            this.order_to_suppliers()
+            this.deliver_to_manufacturers()
+            wcap.append(supplier.working_capital)
+            
+        self.assertEqual(len(supplier.delivery_amount), 1)
+        self.assertEqual(len(manufacturer.received_productions), 1)
+        self.assertGreater(wcap[2], wcap[1])
+        
+class Test_deliver_to_retailers(unittest.TestCase):
+    
+    def setUp(self):
+        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        this = Agents(gen.list_agents)
+        
+        self.this = this
+        
+    def test_1_rep(self):
+        this = self.this
+        retailer = this.ret_list[0]
+        manufacturer = this.man_list[0]
+        iwcap = manufacturer.working_capital
+        
+        this.order_to_manufacturers()
+        this.order_to_suppliers()
+        this.deliver_to_manufacturers()
+        this.deliver_to_retailers()
+        
+        self.assertEqual(manufacturer.delivery_amount[0][0], 1)
+        self.assertEqual(manufacturer.delivery_amount[0][1], 
+                         manufacturer.step_production * (retailer.order_quantity / manufacturer.received_orders))
+        self.assertEqual(retailer.received_productions[0][0], 
+                         manufacturer.step_production * (retailer.order_quantity / manufacturer.received_orders))
+        self.assertEqual(retailer.received_productions[0][1], manufacturer.selling_price)
+        self.assertGreater(manufacturer.working_capital, iwcap)
+        
+        
+    def test_3_reps(self):
+        this = self.this
+        retailer = this.ret_list[0]
+        manufacturer = this.man_list[0]
+        wcap = list()
+        
+        for i in range(3):
+            this.order_to_manufacturers()
+            this.order_to_suppliers()
+            this.deliver_to_manufacturers()
+            this.deliver_to_retailers()
+            wcap.append(manufacturer.working_capital)
+            
+        self.assertEqual(len(manufacturer.delivery_amount), 1)
+        self.assertEqual(len(retailer.received_productions), 1)
+        self.assertGreater(wcap[2], wcap[1])
+        
+class Test_calculate_retailer_profit(unittest.TestCase):
+    
+    def setUp(self):
+        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        this = Agents(gen.list_agents)
+        
+        self.this = this
+
+    def test(self):
+        this = self.this
+        retailer = this.ret_list[0]
+        iwcap = retailer.working_capital
+
+        this.order_to_manufacturers()
+        this.order_to_suppliers()
+        this.deliver_to_manufacturers()
+        this.deliver_to_retailers()
+        this.calculate_retailer_profit()
+        
+        self.assertGreater(retailer.working_capital, iwcap)
+
 
 if __name__ == '__main__':
     unittest.main()

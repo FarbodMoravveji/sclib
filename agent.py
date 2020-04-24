@@ -71,8 +71,7 @@ class Agent(Parameters):
         self.max_suppliers = max_suppliers
         self.input_margin = input_margin
         self.interest_rate = interest_rate
-        self.log_working_capital = list()
-        self.log_working_capital.append(self.working_capital)
+        self.log_working_capital = [self.working_capital]
         self.__check_role()
         self.__assign_role_specific_attributes()
     

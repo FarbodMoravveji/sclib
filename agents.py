@@ -32,7 +32,6 @@ class Agents:
         self._do_shuffle = False
         self._node_level_disruption = False
         
-        self.num_steps = 0
     @property
     def list_agents(self) -> list:
         return self._list_agents
@@ -43,8 +42,7 @@ class Agents:
         Creates lists of retailers, manufacturers and suppliers. 
         """
         self.ret_list = [agent for agent in self.list_agents if 
-                          agent.role == agent.retailer and 
-                          agent.consumer_demand != 0]                          #Filters list_agents for retailers who should order.
+                          agent.role == agent.retailer]                        #Filters list_agents for retailers who should order.
         
         self.man_list = [agent for agent in self.list_agents if 
                          agent.role == agent.manufacturer]                     #Filters list_agents for manufacturers.
@@ -133,7 +131,6 @@ class Agents:
         of retailers within it's current step and also facilitates the 
         delivery of the products to the appropriate retailers.
         """
-        self.num_steps += 1
         
         temp = list()
 
@@ -153,7 +150,9 @@ class Agents:
         
         for ret in self.ret_list:
             rand_value = np.random.normal(ret.mu_consumer_demand, ret.sigma_consumer_demand)
-            self.consumer_demand = 0.0 if rand_value < 0 else rand_value       #Assigning consumer demand
+            ret.consumer_demand = 0.0 if rand_value < 0 else rand_value        #Assigning consumer demand
+            if ret.consumer_demand == 0:
+                continue
             
             if ret.supplier_set:
                 ret.supplier_set = list()
@@ -268,7 +267,6 @@ class Agents:
             temp = list()
             
             if len(sup.customer_set) == 0:                                     #Making sure supplier  has received some orders.
-                sup.log_working_capital.append(sup.working_capital)
                 continue
             
             else:
@@ -282,7 +280,6 @@ class Agents:
                     sup.step_production = sup.received_orders
                 
                 if self.almost_equal_to_zero(sup.step_production, sup.abs_tol):
-                    sup.log_working_capital.append(sup.working_capital)
                     continue
                 else:
                     
@@ -302,7 +299,6 @@ class Agents:
                     
                     step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += sup.working_capital + step_profit                       # Updating suppliers' working capital.
-                    sup.log_working_capital.append(sup.working_capital)
 
     def deliver_to_retailers(self):
         """
@@ -329,7 +325,6 @@ class Agents:
                 total_money_paid += amount * price
     
             if len(man.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, man.abs_tol):       
-                man.log_working_capital = man.working_capital
                 continue
             else:
                 if self._node_level_disruption:                                #Node level disruption is optional.
@@ -341,7 +336,6 @@ class Agents:
                     man.step_production = man.received_orders
                 
                 if self.almost_equal_to_zero(man.step_production, man.abs_tol):
-                    man.log_working_capital = man.working_capital
                     continue
                 else:
 
@@ -360,7 +354,6 @@ class Agents:
                     unit_production_cost = total_money_paid / total_received_production
                     step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital)
                     man.working_capital += man.working_capital + step_profit
-                    man.log_working_capital = man.working_capital
 
     def calculate_retailer_profit(self):
         """
@@ -377,12 +370,10 @@ class Agents:
                 total_money_paid += amount * price                             # Calculating total money paid.
             
             if self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
-                ret.log_working_capital = ret.working_capital
                 continue
             
             else:
                   unit_production_cost = total_money_paid / total_received_production
                   step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
-                  ret.log_working_capital = ret.working_capital
 
