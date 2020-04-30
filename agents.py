@@ -377,7 +377,6 @@ class Agents:
                   step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
 
-#Advancement methods
     def upstream_flow(self):
         self.order_to_manufacturers()
         self.order_to_suppliers()
