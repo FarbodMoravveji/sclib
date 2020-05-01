@@ -9,10 +9,16 @@ from recorder import Recorder
 
 class Evolve(Recorder):
     
-    def __init__(self, excel_file: str, steps: int):
+    def __init__(self, Agents_object: object, steps: int):
         
-        Recorder.__init__(self, excel_file, steps)
+        Recorder.__init__(self, Agents_object.list_agents)
+        
+        self.model = Agents_object
+        self._num_steps = steps
 
+    @property
+    def num_steps(self) -> int:
+        return self._num_steps
     
     def proceed(self):
         for _ in range(self.num_steps):

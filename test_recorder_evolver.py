@@ -1,17 +1,29 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+from generate_agents import GenAgents
+from agents import Agents
 from evolve import Evolve
+from recorder import Recorder
 
 class Test_Recorder(unittest.TestCase):
     
     def setUp(self):
-        self.model = Evolve(excel_file = r'test_agents_sheets\test.xlsx', steps = 5)
+        generate = GenAgents(excel_file = r'test_agents_sheets\test.xlsx')
+        agents_object = Agents(generate.list_agents)
+        self.this = Evolve(agents_object, steps = 5)
 
     def test_log_working_capital(self):
-        this = self.model
-        self.assertEqual(len(this.log_working_capital,6))
-
+        this = self.this
+        self.assertEqual(len(this.log_working_capital.columns), 1)
+        this.proceed()
+        self.assertEqual(len(this.log_working_capital.columns), 6)
+        
+    def counter(self):
+        this = self.this
+        self.assertEqual(this.current_step, 0)
+        this.proceed()
+        self.assertEqual(this.current_step, 5)
 
 
 
