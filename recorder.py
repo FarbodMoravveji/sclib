@@ -12,7 +12,11 @@ from agents import Agents
 from generate_agents import GenAgents
 
 
-class Recorder():
+class Recorder:
+    """
+    A class responsible for keeping tracks of the values of variables and time steps
+    within the model.
+    """
     
     def __init__(self, list_agents):
         
@@ -60,8 +64,8 @@ class Recorder():
         for (i, elem) in enumerate(self.list_agents):
             wcv[i] = elem.working_capital
         
-        temp_log_wcap = pd.DataFrame(wcv, columns=[f'step_"{self.current_step}"']) # The df containing updated values of working capital.
-        self._log_working_capital = pd.concat([self._log_working_capital, temp_log_wcap], axis = 1)       # Updating self.log_wcap 
-        
+        # temp_log_wcap = pd.DataFrame(wcv, columns=[f'step_"{self.current_step}"']) # The df containing updated values of working capital.
+        # self._log_working_capital = pd.concat([self._log_working_capital, temp_log_wcap], axis = 1)       # Updating self.log_wcap 
+        self.log_working_capital[f'step_"{self.current_step}"'] = wcv
             
         

@@ -18,6 +18,9 @@ class Evolve(Recorder):
 
 
     def proceed(self, steps: int):
+        """
+        Pushes the model forward.
+        """
         for _ in range(steps):
             try:
                 self._model.one_round()

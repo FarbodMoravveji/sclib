@@ -378,14 +378,23 @@ class Agents:
                   ret.working_capital += ret.working_capital + step_profit
 
     def upstream_flow(self):
+        """
+        Holds the methods related to the upstream flow of orders.
+        """
         self.order_to_manufacturers()
         self.order_to_suppliers()
         
     def downstream_flow(self):
+        """
+        Holds the methods related to the downstraem flow of products.
+        """
         self.deliver_to_manufacturers()
         self.deliver_to_retailers()
         self.calculate_retailer_profit()
         
     def one_round(self):
+        """
+        Creates a complete round of ordering and delivery.
+        """
         self.upstream_flow()
         self.downstream_flow()
