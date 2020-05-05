@@ -7,9 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import DataFrame
-from agent import Agent
-from agents import Agents
-from generate_agents import GenAgents
+from sclib.agent import Agent
+from sclib.agents import Agents
+from sclib.generate_agents import GenAgents
 
 
 class Recorder:
@@ -62,10 +62,8 @@ class Recorder:
         wcv = np.zeros(self.n_agents)                                          # Creating a vector to save initial working capitals into. 
         
         for (i, elem) in enumerate(self.list_agents):
-            wcv[i] = elem.working_capital
+            wcv[i] = elem.working_capital     
         
-        # temp_log_wcap = pd.DataFrame(wcv, columns=[f'step_"{self.current_step}"']) # The df containing updated values of working capital.
-        # self._log_working_capital = pd.concat([self._log_working_capital, temp_log_wcap], axis = 1)       # Updating self.log_wcap 
-        self.log_working_capital[f'step_"{self.current_step}"'] = wcv
+        self.log_working_capital[f'step_{self.current_step}'] = wcv
             
         

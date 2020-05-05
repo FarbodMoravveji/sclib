@@ -10,7 +10,8 @@ class Visualizer:
     a line chart of the values related to each agent. if boolean variable named
     aggregate is set to True, only the aggregate value of each step is visualized.
     """
-    def __init__(DataFrame: DataFrame, aggregate:bool = False, title:str = None, xlabel:str = None, ylabel:str = None, legend: bool = False)
+    def __init__(DataFrame: DataFrame, aggregate:bool = False, title:str = None
+                 , xlabel:str = None, ylabel:str = None, legend: bool = False)
         self.DF = DataFrame
         self.agg = aggregate
         self.title = title

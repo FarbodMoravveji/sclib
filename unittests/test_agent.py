@@ -1,5 +1,5 @@
 import unittest
-from agent import Agent
+from sclib.agent import Agent
 
 class Test_Agent(unittest.TestCase):
     def setUp(self):

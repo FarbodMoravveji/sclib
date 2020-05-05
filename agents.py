@@ -10,7 +10,7 @@ from typing import List
 from random import shuffle
 import numpy as np
 import matplotlib.pyplot as plt
-from agent import Agent
+from sclib.agent import Agent
 
 class Agents:
     """

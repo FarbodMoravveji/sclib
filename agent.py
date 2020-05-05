@@ -6,7 +6,7 @@ Created on Sun Apr  5 19:13:41 2020
 """
 import sys
 import numpy as np
-from parameters import Parameters
+from sclib.parameters import Parameters
 
 class Agent(Parameters):
     """

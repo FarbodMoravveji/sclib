@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from generate_agents import GenAgents
-from agents import Agents
-from evolve import Evolve
-from recorder import Recorder
+from sclib.generate_agents import GenAgents
+from sclib.agents import Agents
+from sclib.evolve import Evolve
+from sclib.recorder import Recorder
 
 class Test_Recorder(unittest.TestCase):
     

@@ -1,7 +1,7 @@
 import sys, os
 from typing import List
 import pandas as pd
-from agent import Agent 
+from sclib.agent import Agent 
 
 class GenAgents:
     """

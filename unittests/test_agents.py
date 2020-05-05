@@ -4,8 +4,8 @@ Created on Mon Apr  6 18:50:26 2020
 @author: Farbod
 """
 import unittest
-from generate_agents import GenAgents
-from agents import Agents
+from sclib.generate_agents import GenAgents
+from sclib.agents import Agents
 
 class Test_Agents(unittest.TestCase):
     

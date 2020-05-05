@@ -5,7 +5,7 @@ Created on Sun Apr  5 12:17:26 2020
 @author: Farbod
 """
 import unittest
-from agent import Agent
+from sclib.agent import Agent
 
 class Test_Agent(unittest.TestCase):
     def setUp(self):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from agents import Agents
-from recorder import Recorder
+from sclib.agents import Agents
+from sclib.recorder import Recorder
 
 
 class Evolve(Recorder):
