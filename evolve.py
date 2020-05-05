@@ -26,6 +26,8 @@ class Evolve(Recorder):
                 self._model.one_round()
                 self.current_step += 1
                 self.update_log_wcap()
+                self.update_log_orders()
+                self.update_log_delivery()
             except Exception as err:
                 print(err)
             

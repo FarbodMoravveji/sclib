@@ -4,7 +4,7 @@ from sclib.generate_agents import GenAgents
 class Test_GenAgents(unittest.TestCase):
     
     def setUp(self):
-        obj = GenAgents(r'test_agents_sheets\test.xlsx')
+        obj = GenAgents(r'test_sheets\test.xlsx')
         
         self.GA = obj
         

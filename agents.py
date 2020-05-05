@@ -9,7 +9,6 @@ import math
 from typing import List
 from random import shuffle
 import numpy as np
-import matplotlib.pyplot as plt
 from sclib.agent import Agent
 
 class Agents:
@@ -106,22 +105,7 @@ class Agents:
         Finds an agent whose id is equivalent to the unique_id proovided
         """
         return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
-    
-    # def visualize_working_capital_dynamics(self):
-    #     """
-    #     creates an n*m matrix where each row resembles an agent (n agents) and 
-    #     each column resembles a step (m steps).
-    #     """
-    #     working_capital_matrix = np.zeros((len(self.list_agents), self._num_steps + 1))
-        
-    #     for elem in self.list_agents:
-    #         for step in range(self.num_steps + 1):
-    #             working_capital_matrix[elem][step] = elem.log_working_capital[step]
-        
-    #     x = range(self.num_steps + 1)
-    #     for row in working_capital_matrix:
-    #         plt.plot(x, row)
-    
+
     # Behavioral methods
     def order_to_manufacturers(self) -> None:
         """
@@ -159,6 +143,9 @@ class Agents:
             
             if ret.elig_ups_agents:
                 ret.elig_ups_agents = list()
+                
+            if ret.orders_succeeded:
+                ret.orders_succeeded = 0
             
             ret.order_quantity = (ret.consumer_demand / ret.max_suppliers)
             
@@ -181,6 +168,8 @@ class Agents:
             n_elig_ups = len(ret.elig_ups_agents)
             n_append = min([n_elig_ups, ret.max_suppliers])
             ret.supplier_set.extend(ret.elig_ups_agents[:n_append])            #Adding eligible upstream agents to supplier set of the agent.
+            
+            ret.orders_succeeded = ret.order_quantity * n_append               #To keep track of the actual ordered amount.
     
             for agent_id in ret.supplier_set:
                 supplier = self.find_agent_by_id(agent_id)                     #Finding a manufacturer object by it's agent_id.
@@ -220,6 +209,9 @@ class Agents:
             
             if man.elig_ups_agents:
                 man.elig_ups_agents = list()
+                
+            if man.orders_succeeded:
+                man.orders_succeeded = 0
             
             man.order_quantity = (man.received_orders /man.max_suppliers)      #manufacturers order to max_suppliers suppliers in equal volumes.
             
@@ -242,7 +234,9 @@ class Agents:
             n_elig_ups = len(man.elig_ups_agents)
             n_append = min([n_elig_ups, man.max_suppliers])
             man.supplier_set.extend(man.elig_ups_agents[:n_append])
-
+            
+            man.orders_succeeded = man.order_quantity * n_append
+            
             for agent_id in man.supplier_set:
                 agent = self.find_agent_by_id(agent_id)
                 agent.customer_set.append(man.agent_id)                        #Add a retailer object to the list.
@@ -362,12 +356,18 @@ class Agents:
         """
         
         for ret in self.ret_list:
+            
+            if ret.total_received_production:
+                ret.total_received_production = 0
+            
             total_received_production = 0
             total_money_paid = 0
 
             for (amount, price) in ret.received_productions:                   #Calculating total received productions.
                 total_received_production += amount                            #WHAT if the length is ZERO?                   
-                total_money_paid += amount * price                             # Calculating total money paid.
+                total_money_paid += amount * price                            # Calculating total money paid.
+            
+            ret.total_received_production = total_received_production
             
             if self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
                 continue

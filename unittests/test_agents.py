@@ -10,7 +10,7 @@ from sclib.agents import Agents
 class Test_Agents(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -41,7 +41,7 @@ class Test_Agents(unittest.TestCase):
 class Test_order_to_manufacturers1(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -61,7 +61,7 @@ class Test_order_to_manufacturers1(unittest.TestCase):
 class Test_order_to_manufacturers2(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -83,7 +83,7 @@ class Test_order_to_manufacturers2(unittest.TestCase):
         
 class Test_order_to_manufacturers3(unittest.TestCase):
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test_lots_of_agents.xlsx')
+        gen = GenAgents(r'test_sheets\test_lots_of_agents.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -116,7 +116,7 @@ class Test_order_to_manufacturers3(unittest.TestCase):
 class Test_order_to_suppliers1(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -135,7 +135,7 @@ class Test_order_to_suppliers1(unittest.TestCase):
 class Test_order_to_suppliers2(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -159,7 +159,7 @@ class Test_order_to_suppliers2(unittest.TestCase):
 class Test_deliver_to_manufacturers(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -201,7 +201,7 @@ class Test_deliver_to_manufacturers(unittest.TestCase):
 class Test_deliver_to_retailers(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
@@ -246,7 +246,7 @@ class Test_deliver_to_retailers(unittest.TestCase):
 class Test_calculate_retailer_profit(unittest.TestCase):
     
     def setUp(self):
-        gen = GenAgents(r'test_agents_sheets\test.xlsx')
+        gen = GenAgents(r'test_sheets\test.xlsx')
         this = Agents(gen.list_agents)
         
         self.this = this
