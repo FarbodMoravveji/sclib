@@ -10,10 +10,24 @@ class Visualizer:
     a line chart of the values related to each agent. if boolean variable named
     aggregate is set to True, only the aggregate value of each step is visualized.
     """
-    def __init__(self, dfrm:DataFrame, aggregate:bool = False):
+    def __init__(self, dfrm: DataFrame, aggregate:bool = False):
+        """
+        constructor
+         Inputs:
+           dfrm: a pandas DataFrame object present in Evovle obgect.
+           aggregate: A boolean parameter which creates a single column DataFrame
+           containing aggregated values of dfrm at each step.
+           
+           Example:
+               generate = GenAgents(excel_file)
+               agents_object = Agents(generate.list_agents)
+               model = Evolve(agents_object)
+               ax = Visualize(model.log_working_capital)
+               ax.line_plot()
+        """
         self.dfrm = dfrm
         self.agg = aggregate
-    
+
     def __aggregate(self) -> DataFrame:
         """
         This method creates a DataFrame of 1 column with aggregated values of an
@@ -24,7 +38,7 @@ class Visualizer:
         agg_df.index = ['aggregate value at step']
         agg_df = agg_df.transpose()
         return agg_df
-        
+
     def line_plot(self, title:str = None, xlabel:str = None, ylabel:str = None,
                   legend: bool = False):
         """
@@ -39,11 +53,3 @@ class Visualizer:
             ax = plotted_df.plot(title = title, legend = legend)
             ax.set_xlabel(f"{xlabel}")
             ax.set_ylabel(f"{ylabel}")
-            
-    
-        
-        
-        
-        
-    
-    

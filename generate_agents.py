@@ -11,14 +11,19 @@ class GenAgents:
     """
     list_agents: List[Agent]
     def __init__(self, excel_file: str):
+        """
+        constructor
+         Input:
+           excel_file: A file.xlsx that provides parameters of Agent() class 
+                       in the proper order.
+        """
         self.excel_file = excel_file
         self.__check_excel_file()
         self.list_agents = list()
-        
+
         self.__read_excel_file()
         self.__get_list_agents()
-        
-    
+
     def __check_excel_file(self):
         """
         This method makes sure that a proper excel sheet is passed to the class.
@@ -26,7 +31,7 @@ class GenAgents:
         if not os.path.exists(self.excel_file):
             raise FileNotFoundError
             sys.exit(1)
-    
+
     def __read_excel_file(self):
         """
         This method creates a dataframe from the excel_file passed to the 

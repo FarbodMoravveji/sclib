@@ -16,7 +16,6 @@ class Agent(Parameters):
     The type of the agent is supplied via the "role" variable supplied to the
     constructor and it can be a retailer, manufacturer or a supplier
     """
-    
     order_quantity: float
     consumer_demand: float
     supplier_set: list
@@ -31,8 +30,7 @@ class Agent(Parameters):
     elig_ups_agents: list
     orders_succeeded: float
     total_received_production: float
-    
-    
+
     def __init__(self, 
                  agent_id: int, 
                  role: str, 
@@ -45,7 +43,6 @@ class Agent(Parameters):
                  max_suppliers: int = 3,
                  input_margin: float = 0.01,
                  interest_rate: float = 0.002):
-        
         """
         constructor
          Inputs:
@@ -56,7 +53,6 @@ class Agent(Parameters):
                   - 'm' for manufacturer
                   - 's' for supplier
         """
-        
         Parameters.__init__(self)
         
         self.agent_id = agent_id
@@ -72,17 +68,16 @@ class Agent(Parameters):
         self.interest_rate = interest_rate
         self.__check_role()
         self.__assign_role_specific_attributes()
-    
+
     def __assign_role_specific_attributes(self) -> None: 
         """
-        Private method to add the following attributes to the following roles
+        Private method to add the following attributes to the following roles:
 
         role             consumer_demand    supplier_set  customer_set  production_capacity  received_orders  received_productions  order_quant_tracker order_quantity step_production delivery_amount elig_ups_agents  orders_succeeded  total_received_production
         retailer                 Y                  Y             N               N                  N                Y                  N                   Y             N                   N           Y                     Y                    Y
         manufacturer             N                  Y             Y               Y                  Y                Y                  Y                   Y             Y                   Y           Y                     Y                    N
         supplier                 N                  N             Y               Y                  Y                N                  Y                   N             Y                   Y           N                     N                    N
         """
-        
         # a retailer has a consumer demand attribute, but others don't have it<
         # Production capacity of the supplier and manufacturers are a proportion of their total working capital 
         if self.role == self.retailer:
@@ -105,7 +100,7 @@ class Agent(Parameters):
             self.step_production = 0.0
             self.delivery_amount = list()
             self.elig_ups_agents = list()
-            self.orders_succeeded = 0
+            self.orders_succeeded = 0.0
         elif self.role == self.supplier:
             self.customer_set = list()
             self.consumer_set = list()
@@ -115,7 +110,6 @@ class Agent(Parameters):
             self.step_production = 0.0
             self.delivery_amount = list()
 
-            
     def __check_role(self) -> None:
         """
         Private method to check the sanity of the role
@@ -125,6 +119,3 @@ class Agent(Parameters):
         else:
             raise ValueError(f'__check_role: self.role = "{self.role}" is undefined')
             sys.exit(self.abort)
-            
-        
-
