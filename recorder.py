@@ -53,6 +53,10 @@ class Recorder:
         """
         This method creates a dataframe which contains initial working capital 
         values.
+        
+        Returns:
+            A pandas DataFrame consisted of only one column which holds the initial
+            values of working capital related to each agent.
         """
         wcv = np.zeros(self.n_agents)                                          # Creating a vector to save initial working capitals into. 
         
@@ -66,6 +70,10 @@ class Recorder:
         """
         This method creates a dataframe which contains initial order values that 
         are equal to zero.
+        
+        Returns:
+            A pandas DataFrame consisted of only one column which holds zeros
+            as initial order amounts related to each agent.
         """
         wcv = np.zeros(self.n_agents)                                          
         log_orders = pd.DataFrame(wcv, columns =['step_0'])          
@@ -75,12 +83,16 @@ class Recorder:
         """
         This method creates a dataframe which contains initial deliveries that 
         are equal to zero.
+        
+        Returns:
+            A pandas DataFrame consisted of only one column which holds zeros
+            as initial delivery amounts related to each agent.
         """
         wcv = np.zeros(self.n_agents)                                          
         log_delivery = pd.DataFrame(wcv, columns =['step_0'])          
         return log_delivery
 
-    def update_log_wcap(self):
+    def update_log_wcap(self) -> None:
         """
         This method adds a new column to the log_wcap DataFrame after each step.
         The mentioned task is carried out by: 1- Creating a temporary DataFrame
@@ -94,7 +106,7 @@ class Recorder:
 
         self.log_working_capital[f'step_{self.current_step}'] = wcv
 
-    def update_log_orders(self):
+    def update_log_orders(self) -> None:
         """
         This method adds a new column to the log_orders DataFrame after each step.
         The mentioned task is carried out by: 1- Creating a temporary DataFrame
@@ -111,7 +123,7 @@ class Recorder:
 
         self.log_orders[f'step_{self.current_step}'] = wcv
 
-    def update_log_delivery(self):
+    def update_log_delivery(self) -> None:
         """
         This method adds a new column to the log_orders DataFrame after each step.
         The mentioned task is carried out by: 1- Creating a temporary DataFrame

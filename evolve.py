@@ -22,7 +22,7 @@ class Evolve(Recorder):
     def model(self) -> Agents:
         return self._model
 
-    def proceed(self, steps: int):
+    def proceed(self, steps: int) -> None:
         """
         Pushes the model forward.
         """

@@ -24,7 +24,7 @@ class GenAgents:
         self.__read_excel_file()
         self.__get_list_agents()
 
-    def __check_excel_file(self):
+    def __check_excel_file(self) -> None:
         """
         This method makes sure that a proper excel sheet is passed to the class.
         """
@@ -32,7 +32,7 @@ class GenAgents:
             raise FileNotFoundError
             sys.exit(1)
 
-    def __read_excel_file(self):
+    def __read_excel_file(self) -> None:
         """
         This method creates a dataframe from the excel_file passed to the 
         GenAgents class as an argument
@@ -40,7 +40,7 @@ class GenAgents:
         df = pd.read_excel(self.excel_file)
         self.df = df
 
-    def __get_list_agents(self):
+    def __get_list_agents(self) -> None:
         """
         This method is responsible for instanciating Agent() objects and adding
         those objects to self.list_agents.

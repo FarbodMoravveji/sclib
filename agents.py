@@ -39,10 +39,10 @@ class Agents:
         self._seeding = False
 
     @property
-    def list_agents(self) -> list:
+    def list_agents(self):
         return self._list_agents
 
-    def __break_list(self):
+    def __break_list(self) -> None:
         """
         Creates lists of retailers, manufacturers and suppliers. 
         """
@@ -86,14 +86,14 @@ class Agents:
         if not self._do_shuffle:
             self._do_shuffle = True
 
-    def never_shuffle(self):
+    def never_shuffle(self) -> None:
         """
         Cancels competition in the model by not shuffling the list of agents.
         """
         if self._do_shuffle:
             self._do_shuffle = False
 
-    def activate_random_node_level_disruption(self):
+    def activate_random_node_level_disruption(self) -> None:
         """
         Adds uncertainty of delivery to the model. the node_level_disruption flag
         is False by default, so this method can be called to implement
@@ -102,7 +102,7 @@ class Agents:
         if not self._node_level_disruption:
             self._node_level_disruption = True
 
-    def deactivate_random_node_level_disruption(self):
+    def deactivate_random_node_level_disruption(self) -> None:
         """
         This method takes the random_node_level_disruption flag back to its default
         state.
@@ -110,14 +110,14 @@ class Agents:
         if self._node_level_disruption:
             self._node_level_disruption = False
 
-    def turn_off_seeding(self):
+    def turn_off_seeding(self) -> None:
         """
         Sets the seeding flag of the model to its default state which is False.
         """
         if self._seeding:
             self._seeding = False
 
-    def turn_on_seeding(self):
+    def turn_on_seeding(self) -> None:
         """
         Sets a np.random.seed() method on the model.
         """
@@ -140,9 +140,13 @@ class Agents:
         """
         return  math.isclose(value, 0, abs_tol = abs_tol)
 
-    def find_agent_by_id(self, unique_id):
+    def find_agent_by_id(self, unique_id) -> object:
         """
-        Finds an agent whose id is equivalent to the unique_id proovided
+        Finds an agent whose id is equivalent to the unique_id proovided.
+        
+        Returns:
+            An Agent() object with the agent_id that is identical to the uniqu_id
+            provided as the argument of the method.
         """
         return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
 
@@ -219,7 +223,7 @@ class Agents:
                 supplier.order_quant_tracker.append((ret.agent_id,
                                                   ret.order_quantity))         #Keeping track of the order quantity is important for delivering phase.   
 
-    def order_to_suppliers(self):
+    def order_to_suppliers(self) -> None:
         """
         This method is responsible for handling manufacturers' ordering process.
         It receives an Agents object and takes advantage of the manufacturers'
@@ -284,7 +288,7 @@ class Agents:
                 agent.order_quant_tracker.append((man.agent_id,
                                                   man.order_quantity))
 
-    def deliver_to_manufacturers(self):
+    def deliver_to_manufacturers(self) -> None:
         """
         This method receives an Agents object and is responsible for
         delivering manufacturers' orders by suppliers. Delivery is subject
@@ -329,7 +333,7 @@ class Agents:
                     step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += sup.working_capital + step_profit                       # Updating suppliers' working capital.
 
-    def deliver_to_retailers(self):
+    def deliver_to_retailers(self) -> None:
         """
         This method receives a manufacturer object and is responsible for
         delivering retailers orders by  a manufacturer. Delivery is subject
@@ -380,7 +384,7 @@ class Agents:
                     step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital)
                     man.working_capital += man.working_capital + step_profit
 
-    def calculate_retailer_profit(self):
+    def calculate_retailer_profit(self) -> None:
         """
         This method is responsible for calculating retailers' profits. It 
         receives an Agents object and manipulates retailers' working capital.
@@ -405,14 +409,14 @@ class Agents:
                   step_profit = (ret.selling_price * total_received_production) - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
                   ret.working_capital += ret.working_capital + step_profit
 
-    def upstream_flow(self):
+    def upstream_flow(self) -> None:
         """
         Holds the methods related to the upstream flow of orders.
         """
         self.order_to_manufacturers()
         self.order_to_suppliers()
 
-    def downstream_flow(self):
+    def downstream_flow(self) -> None:
         """
         Holds the methods related to the downstraem flow of products.
         """
@@ -420,7 +424,7 @@ class Agents:
         self.deliver_to_retailers()
         self.calculate_retailer_profit()
 
-    def one_round(self):
+    def one_round(self) -> None:
         """
         Creates a complete round of ordering and delivery.
         """
