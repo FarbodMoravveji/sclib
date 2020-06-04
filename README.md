@@ -7,4 +7,4 @@ We use Major/Minor/Revision style for versioning. For the versions available, se
 ## Authors
 
 * **Farbod Moravveji** - *MSc. of financial engineering, Tarbiat Modares university.*
-* **Ehsan Moravveji** - *Title* 
+* **Ehsan Moravveji** - ** 
