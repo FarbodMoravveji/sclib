@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from operator import itemgetter
 import math
+from math import log
 from typing import List
 from random import shuffle
 import numpy as np
@@ -46,13 +45,13 @@ class Agents:
         """
         Creates lists of retailers, manufacturers and suppliers. 
         """
-        self.ret_list = [agent for agent in self.list_agents if 
+        self.ret_list = [agent for agent in self._list_agents if 
                           agent.role == agent.retailer]                        # Filters list_agents for retailers who should order.
         
-        self.man_list = [agent for agent in self.list_agents if 
+        self.man_list = [agent for agent in self._list_agents if 
                          agent.role == agent.manufacturer]                     # Filters list_agents for manufacturers.
         
-        self.sup_list = [agent for agent in self.list_agents if 
+        self.sup_list = [agent for agent in self._list_agents if 
                          agent.role == agent.supplier]                         # Filters list_agents for suppliers.
 
     def __check_duplicate_id(self) -> None:
@@ -60,7 +59,7 @@ class Agents:
         Checks if list_agents contain any duplicate agent_ids.
         """
         agents_set = set()
-        ids = [agent.agent_id for agent in self.list_agents]
+        ids = [agent.agent_id for agent in self._list_agents]
         for elem in ids:
             if elem in agents_set:
                 raise ValueError(f'__check_duplicate_id: Agents.list_agents contains at least one duplicate id')
@@ -72,7 +71,7 @@ class Agents:
         This method makes sure that there is at least one agent in each layer        
         """
         role_set = set()
-        for elem in self.list_agents:
+        for elem in self._list_agents:
             role_set.add(elem.role)
         if len(role_set) < 3:
             raise ValueError(f"__layers_fulfilled: At least one layer doesn't contain any agents")
@@ -148,7 +147,12 @@ class Agents:
             An Agent() object with the agent_id that is identical to the uniqu_id
             provided as the argument of the method.
         """
-        return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
+        return [agent for agent in self._list_agents if unique_id == agent.agent_id][0]
+
+    def realize_selling_prices(self):
+        for agent in self._list_agents:
+            step_selling_price = np.random.lognormal(mean = log(agent.mu_selling_price), sigma = agent.sigma_selling_price)
+            agent.selling_price = step_selling_price   #agent.mu_selling_price if step_selling_price <= 0 else
 
     # if self._seeding:
     #     np.random.seed(0)
@@ -177,8 +181,9 @@ class Agents:
 
         for ret in self.ret_list:
             ret.prod_cap = ret.q * ret.working_capital
-            rand_value = np.random.normal(ret.mu_consumer_demand, ret.sigma_consumer_demand)
-            ret.consumer_demand = 0.0 if rand_value < 0 else rand_value        # Assigning consumer demand.
+            rand_value = np.random.exponential(scale = ret.consumer_demand_mean, size = 1)[0]
+            ret.consumer_demand = rand_value                                   # Assigning consumer demand.
+            
             if ret.consumer_demand == 0:
                 continue
 
@@ -398,7 +403,7 @@ class Agents:
                 man.received_productions = list()
 
         for sup in self.sup_list:  
-            sup.fixed_cost = (1 - sup.q) * sup.working_capital
+            # sup.fixed_cost = (1 - sup.q) * sup.working_capital
 
             if len(sup.customer_set) == 0:                                     # Making sure supplier  has received some orders.
                 sup.working_capital -= sup.fixed_cost
@@ -412,7 +417,7 @@ class Agents:
                     sup.step_production = sup.received_orders
 
                 if self.almost_equal_to_zero(sup.step_production, sup.abs_tol):
-                    sup.working_capital -= sup.fixed_cost
+                    # sup.working_capital -= sup.fixed_cost
                     continue
                 else:                        
                     sup.delivery_amount =[(agent_id, sup.step_production * 
@@ -424,7 +429,7 @@ class Agents:
                         agent.received_productions.append((
                             portion, sup.selling_price))                       # Kepping records of received products and their prices for customers.
 
-                    step_profit = (sup.input_margin * sup.step_production) - sup.fixed_cost - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
+                    step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital)  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += step_profit                         # Updating suppliers' working capital.
 
     def deliver_to_retailers(self) -> None:
@@ -441,7 +446,7 @@ class Agents:
         for man in self.man_list:
             total_received_production = 0
             total_money_paid = 0
-            man.fixed_cost = (1 - man.q) * man.working_capital
+            # man.fixed_cost = (1 - man.q) * man.working_capital
 
             for (amount, _) in man.received_productions:                       # Calculating total received productions.
                 total_received_production += amount                            # WHAT if the length is ZERO?
@@ -450,7 +455,7 @@ class Agents:
                 total_money_paid += amount * price
 
             if len(man.customer_set) == 0 or self.almost_equal_to_zero(total_received_production, man.abs_tol):       
-                man.working_capital -= man.fixed_cost
+                # man.working_capital -= man.fixed_cost
                 continue
             else:
                 if self._node_level_disruption:                                # Node level disruption is optional.
@@ -474,7 +479,7 @@ class Agents:
                             portion, man.selling_price))                      # Kepping records of received products and their prices for customers.
 
                     unit_production_cost = total_money_paid / total_received_production
-                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - man.fixed_cost - ((man.interest_rate / 12) * man.working_capital)
+                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital) #- man.fixed_cost
                     man.working_capital += step_profit
 
     def calculate_retailer_profit(self) -> None:
@@ -483,7 +488,7 @@ class Agents:
         receives an Agents object and manipulates retailers' working capital.
         """
         for ret in self.ret_list:
-            ret.fixed_cost = (1 - ret.q) * ret.working_capital
+            # ret.fixed_cost = (1 - ret.q) * ret.working_capital
             if ret.total_received_production:
                 ret.total_received_production = 0
 
@@ -496,13 +501,23 @@ class Agents:
 
             ret.total_received_production = total_received_production
 
-            if self.almost_equal_to_zero(total_received_production, ret.abs_tol):         
-                ret.working_capital -= ret.fixed_cost
+            if self.almost_equal_to_zero(ret.total_received_production, ret.abs_tol):         
+                # ret.working_capital -= ret.fixed_cost
                 continue
             else:
-                  unit_production_cost = total_money_paid / total_received_production
-                  step_profit = (ret.selling_price * total_received_production) - ret.fixed_cost - (unit_production_cost * total_received_production) - ((ret.interest_rate / 12) * ret.working_capital)
-                  ret.working_capital += step_profit
+                unit_production_cost = total_money_paid / ret.total_received_production
+                step_profit = (ret.selling_price * ret.total_received_production) - (unit_production_cost * ret.total_received_production) - ((ret.interest_rate / 12) * ret.working_capital) #- ret.fixed_cost
+                # print(f' selling_price: {ret.selling_price}')
+                # print(f' step_production: {ret.total_received_production}')
+                # print(f'majmoe: {ret.selling_price * ret.total_received_production}')
+                # print(f'unit_production_cost: {unit_production_cost}')
+                # print(f' step_production: {ret.total_received_production}')
+                # print(f'majmoe: {unit_production_cost * ret.total_received_production}')
+                # print(f' cost of capital: {(ret.interest_rate / 12)}')
+                # print(f' working capital: {ret.working_capital}')
+                # print(f'majmoe: {(ret.interest_rate / 12) * ret.working_capital}')
+                # print(f' step_profit: {step_profit}')
+                ret.working_capital += step_profit
 
     def upstream_flow(self) -> None:
         """
@@ -523,5 +538,6 @@ class Agents:
         """
         Creates a complete round of ordering and delivery.
         """
+        self.realize_selling_prices()
         self.upstream_flow()
         self.downstream_flow()

@@ -38,5 +38,14 @@ class Test_Recorder(unittest.TestCase):
         self.assertEqual(len(this.log_delivery.columns), 6)
         print(this.log_delivery)
 
+    def test_restart_model(self):
+        model = self.this
+        model.proceed(500)
+        log_wcap1 = model.log_working_capital
+        model.restart_model()
+        log_wcap2 = model.log_working_capital
+        self.assertNotEqual(log_wcap1, log_wcap2)
+        
+
 if __name__ == '__main__':
     unittest.main()

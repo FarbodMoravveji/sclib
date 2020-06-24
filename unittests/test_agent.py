@@ -3,11 +3,11 @@ from sclib.agent import Agent
 
 class Test_Agent(unittest.TestCase):
     def setUp(self):
-        a1 = Agent( agent_id = 1, role = 'r', working_capital = 120.00, selling_price = 4.50)
+        a1 = Agent( agent_id = 1, role = 'r', working_capital = 120.00)
         a3 = Agent( agent_id = 3, role = 'r')
-        a4 = Agent( agent_id = 4, role = 'm', working_capital = 130.00, selling_price = 4.40)
+        a4 = Agent( agent_id = 4, role = 'm', working_capital = 130.00)
         a6 = Agent( agent_id = 6, role = 'm')
-        a7 = Agent( agent_id = 7, role = 's', working_capital = 140.00, selling_price = 4.20)
+        a7 = Agent( agent_id = 7, role = 's', working_capital = 140.00)
         a9 = Agent( agent_id = 9, role = 's')
         
         self.ret1 = a1
@@ -30,24 +30,23 @@ class Test_Agent(unittest.TestCase):
         self.assertEqual(self.ret1.agent_id , 1 )
         self.assertEqual(self.ret1.role , 'r')
         self.assertEqual(self.ret1.working_capital , 120)        
-        self.assertEqual(self.ret1.selling_price , 4.5)
+        self.assertEqual(self.ret1.selling_price , 0)
+        self.assertEqual(self.ret1.mu_selling_price , 5.00)
+        self.assertEqual(self.ret1.sigma_selling_price , 0.06)
         
     def test_default_values(self):
         self.assertEqual(self.ret3.working_capital , 100)
-        self.assertEqual(self.ret3.selling_price , 5)
-        self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
-        self.assertEqual(self.ret3.sigma_consumer_demand , 10.00)
-        self.assertEqual(self.ret3.mu_consumer_demand , 60.00)
+        self.assertEqual(self.ret3.selling_price , 0)
+        self.assertEqual(self.ret3.mu_selling_price , 5.00)
+        self.assertEqual(self.ret3.sigma_selling_price , 0.06)
+        self.assertEqual(self.ret3.consumer_demand_mean , 60.00)
         self.assertFalse(self.ret3.consumer_demand)
-
    
     def test_retailer_attrs(self):
         self.assertEqual(self.ret1.consumer_demand , self.ret3.consumer_demand)
         self.assertFalse(self.ret1.supplier_set)
-        self.assertFalse(self.ret1.order_quantity)
         self.assertEqual(self.ret1.supplier_set, self.ret1.received_productions)
-        
-    
+            
     def test_manufacturers_attrs(self):
         self.assertFalse(self.man1.supplier_set)
         self.assertFalse(self.man1.consumer_set)

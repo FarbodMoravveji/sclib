@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from sclib.agents import Agents
 from sclib.recorder import Recorder
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import List
 import numpy as np
 import pandas as pd
@@ -29,6 +27,12 @@ class Recorder:
         self._log_orders = self.__create_log_orders_df()
         self._log_delivery = self.__create_log_delivery_df()
 
+        self._initial_list_agents = self._list_agents
+        self._initial_log_working_capital = self._log_working_capital
+        self._initial_log_orders = self._log_orders
+        self._initial_log_delivery = self._log_delivery
+        # self.__remember_initial_state()
+
     @property
     def n_agents(self) -> int:
         return self._n_agents
@@ -48,6 +52,22 @@ class Recorder:
     @property
     def log_delivery(self) -> DataFrame:
         return self._log_delivery
+
+    @property
+    def initial_list_agents(self) -> List[Agent]:
+        return self._initial_list_agents
+
+    @property
+    def initial_log_working_capital(self) -> DataFrame:
+        return self._initial_log_working_capital
+
+    @property
+    def initial_log_orders(self) -> DataFrame:
+        return self._initial_log_orders
+
+    @property
+    def initial_log_delivery(self) -> DataFrame:
+        return self._initial_log_delivery
 
     def __create_log_wcap_df(self) -> DataFrame:
         """
@@ -92,6 +112,27 @@ class Recorder:
         log_delivery = pd.DataFrame(wcv, columns =['step_0'])          
         return log_delivery
 
+    def __remember_initial_state(self) -> None:
+        """
+        This method is used in __init__ in order to save the initial state
+        of model, that is combined of the initial state of list_agents, 
+        the current step and logs for working capital, delivery and orders.
+        """
+        self._initial_list_agents = self._list_agents
+        self._initial_log_working_capital = self._log_working_capital
+        self._initial_log_orders = self._log_orders
+        self._initial_log_delivery = self._log_delivery
+   
+    def restart_model(self):
+        """
+        This method brings the model back to its initial state.
+        """
+        self._list_agents = self._initial_list_agents
+        self._log_working_capital = self._initial_log_working_capital
+        self._log_orders = self._initial_log_orders
+        self._log_delivery = self._initial_log_delivery
+        self.current_step = 0
+    
     def update_log_wcap(self) -> None:
         """
         This method adds a new column to the log_wcap DataFrame after each step.
@@ -139,3 +180,12 @@ class Recorder:
                 wcv[i] = elem.total_received_production
 
         self.log_delivery[f'step_{self.current_step}'] = wcv
+        
+    def step_profit_dataframe(self) -> DataFrame:
+        """
+        Uses the log_working_capital DataFrame to create a new DataFrame containing
+        step profot values with dimensions identical to log_working_capital.
+        """
+        log_step_profit = self.log_working_capital.diff(axis = 1)
+        log_step_profit.fillna(0, inplace = True)
+        return log_step_profit

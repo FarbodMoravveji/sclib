@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import List
 import matplotlib.pyplot as plt
 from pandas import DataFrame
@@ -45,7 +43,7 @@ class Visualizer:
         return agg_df
 
     def line_plot(self, title:str = None, xlabel:str = None, ylabel:str = None,
-                  legend: bool = False) -> None:
+                  legend: bool = False , dpi:int = 300) -> None:
         """
         This method is responsible for visualizing an Evolve DataFrame.
         """

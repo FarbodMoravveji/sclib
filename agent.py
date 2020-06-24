@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 import sys
-import numpy as np
 from sclib.parameters import Parameters
 
 class Agent(Parameters):
@@ -32,13 +29,12 @@ class Agent(Parameters):
                  agent_id: int, 
                  role: str, 
                  working_capital: float = 100.00, 
-                 selling_price: float = 5.00,
+                 mu_selling_price: float = 5.00,
+                 sigma_selling_price: float = 0.06,
                  q: float = 0.90,
-                 mu_consumer_demand: float = 60.00,
-                 sigma_consumer_demand: float = 10.00,
+                 consumer_demand_mean: float = 60,
                  p_delivery: float = 0.80,
-                 max_suppliers: int = 3,
-                 input_margin: float = 0.01,
+                 input_margin: float = 0.50,
                  interest_rate: float = 0.002):
         """
         constructor
@@ -51,18 +47,18 @@ class Agent(Parameters):
                   - 's' for supplier
         """
         Parameters.__init__(self)
-        
+       
         self.agent_id = agent_id
         self.working_capital = working_capital
         self.role = role
-        self.selling_price = selling_price
+        self.mu_selling_price = mu_selling_price
+        self.sigma_selling_price = sigma_selling_price
+        self.selling_price = 0
         self.q = q
-        self.mu_consumer_demand = mu_consumer_demand
-        self.sigma_consumer_demand = sigma_consumer_demand
+        self.consumer_demand_mean = consumer_demand_mean
         self.p_delivery = p_delivery
         self.prod_cap = 0.0
         self.fixed_cost = 0.0
-        self.max_suppliers = max_suppliers
         self.input_margin = input_margin
         self.interest_rate = interest_rate
         self.__check_role()
