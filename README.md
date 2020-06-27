@@ -7,4 +7,7 @@ We use Major/Minor/Revision style for versioning. For the versions available, se
 ## Authors
 
 * **Farbod Moravveji** - *MSc. of financial engineering, Tarbiat Modares university.*
-* **Ehsan Moravveji** - *Title* 
+* **Ehsan Moravveji** 
+## Version Description
+Version 1.2.0 utilizez exponential probability distribution for demand received by the output layer and log-normal distribution for determination of agents' selling price ateach step.
+The next step is to add fixed cost and financing.
