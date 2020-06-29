@@ -185,17 +185,7 @@ class Recorder:
         """
         Uses the log_working_capital DataFrame to create a new DataFrame containing
         step profot values with dimensions identical to log_working_capital.
-        This method should be called after running the model for a couple of steps.
         """
         log_step_profit = self.log_working_capital.diff(axis = 1)
         log_step_profit.fillna(0, inplace = True)
         return log_step_profit
-
-    def Average_Profit_Dataframe(self) -> DataFrame:
-        """
-        This method returns a DataFrame containing the average profit of each 
-        agent per step.
-        """
-        mean_dataframe = self.step_profit_dataframe().mean(axis = 1)
-        average_profit_dataframe = pd.DataFrame(mean_dataframe, columns =['average_profit_per_step'])
-        return average_profit_dataframe
