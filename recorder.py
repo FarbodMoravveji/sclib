@@ -189,3 +189,12 @@ class Recorder:
         log_step_profit = self.log_working_capital.diff(axis = 1)
         log_step_profit.fillna(0, inplace = True)
         return log_step_profit
+    
+    def Average_Profit_Dataframe(self) -> DataFrame:
+        """
+        Returns a DataFrame containing average profit per step for each agent.
+        """
+        step_profit = self.step_profit_dataframe()
+        mean_dataframe = step_profit.mean(axis = 1)
+        average_profit_dataframe = pd.DataFrame(mean_dataframe, columns =['average_profit_per_step'])
+        return average_profit_dataframe

@@ -35,7 +35,8 @@ class Agent(Parameters):
                  consumer_demand_mean: float = 60,
                  p_delivery: float = 0.80,
                  input_margin: float = 0.50,
-                 interest_rate: float = 0.002):
+                 interest_rate: float = 0.002,
+                 fixed_cost: float = 0.0):
         """
         constructor
          Inputs:
@@ -58,7 +59,7 @@ class Agent(Parameters):
         self.consumer_demand_mean = consumer_demand_mean
         self.p_delivery = p_delivery
         self.prod_cap = 0.0
-        self.fixed_cost = 0.0
+        self.fixed_cost = fixed_cost
         self.input_margin = input_margin
         self.interest_rate = interest_rate
         self.__check_role()
