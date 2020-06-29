@@ -183,7 +183,7 @@ class Agents:
             ret.prod_cap = ret.q * ret.working_capital
             rand_value = np.random.exponential(scale = ret.consumer_demand_mean, size = 1)[0]
             ret.consumer_demand = rand_value                                   # Assigning consumer demand.
-
+            
             if ret.consumer_demand == 0:
                 continue
 
@@ -402,7 +402,7 @@ class Agents:
             if man.received_productions:
                 man.received_productions = list()
 
-        for sup in self.sup_list:
+        for sup in self.sup_list:  
 
             if len(sup.customer_set) == 0:                                     # Making sure supplier  has received some orders.
                 sup.working_capital -= sup.fixed_cost
