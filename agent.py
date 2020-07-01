@@ -48,13 +48,13 @@ class Agent(Parameters):
                   - 's' for supplier
         """
         Parameters.__init__(self)
-       
+
         self.agent_id = agent_id
         self.working_capital = working_capital
         self.role = role
         self.mu_selling_price = mu_selling_price
         self.sigma_selling_price = sigma_selling_price
-        self.selling_price = 0
+        self.selling_price = 0.0
         self.q = q
         self.consumer_demand_mean = consumer_demand_mean
         self.p_delivery = p_delivery
@@ -62,6 +62,14 @@ class Agent(Parameters):
         self.fixed_cost = fixed_cost
         self.input_margin = input_margin
         self.interest_rate = interest_rate
+        
+        ##Financing attributes:
+        self.credit_capacity = self.working_capital
+        self.financing_rate = 0.15
+        self.wcap_floor = 0.5 * self.working_capital
+        self.liability = 0.0
+        self.financing_history = list()
+
         self.__check_role()
         self.__assign_role_specific_attributes()
 

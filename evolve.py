@@ -1,4 +1,4 @@
-from sclib.agents import Agents
+# from sclib.agents import Agents
 from sclib.recorder import Recorder
 
 class Evolve(Recorder):
@@ -17,7 +17,7 @@ class Evolve(Recorder):
         self._model = Agents_object
 
     @property
-    def model(self) -> Agents:
+    def model(self):
         return self._model
 
     def proceed(self, steps: int) -> None:
@@ -26,8 +26,8 @@ class Evolve(Recorder):
         """
         for _ in range(steps):
             try:
-                self._model.one_round()
                 self.current_step += 1
+                self._model.one_round()
                 self.update_log_wcap()
                 self.update_log_orders()
                 self.update_log_delivery()
