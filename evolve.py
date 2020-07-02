@@ -48,7 +48,7 @@ class Evolve(Recorder):
                 agent.financing_history.append((wcap_loan * (1 + (agent.financing_rate / 12)), self.current_step))  #Financing history is saved as tuples in the form of (repayment_amount, repayment_due_date)
                 agent.liability += wcap_loan * (1 + (agent.financing_rate / 12))
                 print(f'{wcap_loan} Loan is assigned to agent {agent.agent_id}')
-                print(f'agent {agent.agent_id} with {agent.working_capital} has received financing')
+                print(f'agent {agent.agent_id} has {agent.working_capital} working capital after financing')
 
     def repay_loans(self) -> None:
         """
