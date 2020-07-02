@@ -5,7 +5,7 @@ from typing import List
 from random import shuffle
 import numpy as np
 from sclib.agent import Agent
-from sclib.evolve import Evolve
+
 
 class Agents:
     """
@@ -37,7 +37,6 @@ class Agents:
         self._do_shuffle = False
         self._node_level_disruption = False
         self._seeding = False
-        self._wcap_financing = False
 
     @property
     def list_agents(self):
@@ -125,20 +124,6 @@ class Agents:
         if not self._seeding:
             self._seeding = True
 
-    def activate_wcap_financing(self) -> None:
-        """
-        Enables short term financing.
-        """
-        if not self._wcap_financing:
-            self._wcap_financing = True
-
-    def deactivate_wcap_financing(self) -> None:
-        """
-        Disables short term financing.
-        """
-        if self._wcap_financing:
-            self._wcap_financing = False
-
     def __lt__(self, object) -> bool:
         """
         necessary for gaining the ability to make instances of a class comparable.
@@ -164,29 +149,6 @@ class Agents:
             provided as the argument of the method.
         """
         return [agent for agent in self._list_agents if unique_id == agent.agent_id][0]
-
-    def short_term_financing(self) -> None:
-        """
-        This method adds to agents' working_capital.
-        """
-        for agent in self._list_agents:
-            if agent.working_capital < agent.wcap_floor:
-                remaining_credit_capacity = agent.credit_capacity - agent.liability
-                wcap_loan = np.random.uniform(low = 0, high = remaining_credit_capacity)
-                agent.working_capital += wcap_loan
-                agent.financing_history.append((wcap_loan * (agent.financing_rate / 12), Evolve.current_step))  #Financing history is saved as tuples in the form of (repayment_amount, repayment_due_date)
-            else:
-                continue
-
-    def repay_loans(self) -> None:
-        """
-        This method is used to enable agents to repay the loans.
-        """
-        for agent in self._list_agents:
-            if agent.financing_history:
-                for (amount, due_date) in agent.financing_history:
-                    if due_date == Evolve.current_step:
-                        agent.working_capital -= amount
 
     def realize_selling_prices(self):
         for agent in self._list_agents:
@@ -564,10 +526,6 @@ class Agents:
         """
         Creates a complete round of ordering and delivery.
         """
-        if self._wcap_financing:
-            self.short_term_financing()
         self.realize_selling_prices()
         self.upstream_flow()
         self.downstream_flow()
-        if self._wcap_financing:
-            self.repay_loans()
