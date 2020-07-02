@@ -64,6 +64,13 @@ class Test_Agent(unittest.TestCase):
         self.assertFalse(self.sup1.delivery_amount)
         self.assertEqual(self.sup1.prod_cap, 0)
         self.assertEqual(self.sup3.prod_cap, 0)        
-        
+
+    def test_financing_attrs(self):
+        self.assertEqual(self.ret1.credit_capacity, self.ret1.working_capital)
+        self.assertEqual(self.ret1.financing_rate, 0.15)
+        self.assertEqual(self.ret1.wcap_floor, self.ret1.working_capital * 0.5)
+        self.assertFalse(self.ret1.liability)
+        self.assertFalse(self.ret1.financing_history)
+
 if __name__ == '__main__':
     unittest.main()

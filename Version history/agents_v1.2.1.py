@@ -6,7 +6,6 @@ from random import shuffle
 import numpy as np
 from sclib.agent import Agent
 
-
 class Agents:
     """
     This class receives a list containing Agent() objects and is responsible 
@@ -153,7 +152,10 @@ class Agents:
     def realize_selling_prices(self):
         for agent in self._list_agents:
             step_selling_price = np.random.lognormal(mean = log(agent.mu_selling_price), sigma = agent.sigma_selling_price)
-            agent.selling_price = step_selling_price
+            agent.selling_price = step_selling_price   #agent.mu_selling_price if step_selling_price <= 0 else
+
+    # if self._seeding:
+    #     np.random.seed(0)
 
     def order_to_manufacturers(self) -> None:
         """
@@ -163,9 +165,6 @@ class Agents:
         step and also facilitates the delivery of the products to the appropriate
         retailers.
         """
-        if self._seeding:
-            np.random.seed(0)
-
         if self._do_shuffle:
             shuffle(self.ret_list)                                             # No agent has priority over others in its stage.
 

@@ -1,0 +1,5 @@
+v1.0.0:
+Base model(deterministic selling price, normal demand, no fixed cost, no financing)
+
+v1.2.1:
+Base modellog-normal selling price, exponential demand, deterministic fixed cost, no financing)
