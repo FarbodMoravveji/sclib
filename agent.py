@@ -38,7 +38,9 @@ class Agent(Parameters):
                  interest_rate: float = 0.002,
                  fixed_cost: float = 0.0,
                  days_between_financing: int = 30,
-                 financing_period: int = 90):
+                 financing_period: int = 90,
+                 ordering_period: int = 0,
+                 delivery_period: int = 2):
         """
         constructor
          Inputs:
@@ -64,7 +66,9 @@ class Agent(Parameters):
         self.fixed_cost = fixed_cost
         self.input_margin = input_margin
         self.interest_rate = interest_rate
-        
+        self.ordering_period = ordering_period
+        self.delivery_period = delivery_period
+
         ##Financing attributes:
         self.days_between_financing = days_between_financing
         self.financing_period = financing_period

@@ -26,6 +26,7 @@ class Agents:
             _list_agents: A list containing Agent objects. This list can be
                           constructed manually or it can be extracted from a 
                           GenAgents object as is shown below:
+                              
                               list_of_agents = GenAgents(excel_file).list_agents
         """
         self._list_agents = _list_agents
