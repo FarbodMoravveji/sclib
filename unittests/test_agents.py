@@ -48,6 +48,10 @@ class Test_order_to_manufacturers1(unittest.TestCase):
         this.order_to_manufacturers()
         self.assertTrue(retailer.consumer_demand)
         self.assertTrue(manufacturer.prod_cap)
+        # print(retailer.days_between_financing)
+        # print(retailer.financing_period)
+        # print(manufacturer.days_between_financing)
+        # print(manufacturer.financing_period)
         
 # class Test_order_to_manufacturers3(unittest.TestCase):
 #     def setUp(self):
