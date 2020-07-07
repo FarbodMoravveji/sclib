@@ -36,7 +36,9 @@ class Agent(Parameters):
                  p_delivery: float = 0.80,
                  input_margin: float = 0.50,
                  interest_rate: float = 0.002,
-                 fixed_cost: float = 0.0):
+                 fixed_cost: float = 0.0,
+                 days_between_financing: int = 30,
+                 financing_period: int = 90):
         """
         constructor
          Inputs:
@@ -64,11 +66,15 @@ class Agent(Parameters):
         self.interest_rate = interest_rate
         
         ##Financing attributes:
+        self.days_between_financing = days_between_financing
+        self.financing_period = financing_period
         self.credit_capacity = self.working_capital
         self.financing_rate = 0.15
         self.wcap_floor = 0.5 * self.working_capital
         self.liability = 0.0
         self.financing_history = list()
+        self.remaining_credit_capacity = self.credit_capacity
+        self.time_of_next_allowed_financing = 0
 
         self.__check_role()
         self.__assign_role_specific_attributes()

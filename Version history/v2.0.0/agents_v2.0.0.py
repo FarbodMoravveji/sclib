@@ -6,6 +6,7 @@ from random import shuffle
 import numpy as np
 from sclib.agent import Agent
 
+
 class Agents:
     """
     This class receives a list containing Agent() objects and is responsible 
@@ -428,7 +429,7 @@ class Agents:
                         agent.received_productions.append((
                             portion, sup.selling_price))                       # Kepping records of received products and their prices for customers.
 
-                    step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 365) * sup.working_capital) - sup.fixed_cost  #Calculating profit using a fixed margin for suppliers
+                    step_profit = (sup.input_margin * sup.step_production) - ((sup.interest_rate / 12) * sup.working_capital) - sup.fixed_cost  #Calculating profit using a fixed margin for suppliers
                     sup.working_capital += step_profit                         # Updating suppliers' working capital.
 
     def deliver_to_retailers(self) -> None:
@@ -477,7 +478,7 @@ class Agents:
                             portion, man.selling_price))                      # Kepping records of received products and their prices for customers.
 
                     unit_production_cost = total_money_paid / total_received_production
-                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 365) * man.working_capital) - man.fixed_cost
+                    step_profit = (man.selling_price * man.step_production) - (unit_production_cost * man.step_production) - ((man.interest_rate / 12) * man.working_capital) - man.fixed_cost
                     man.working_capital += step_profit
 
     def calculate_retailer_profit(self) -> None:
@@ -503,7 +504,7 @@ class Agents:
                 continue
             else:
                 unit_production_cost = total_money_paid / ret.total_received_production
-                step_profit = (ret.selling_price * ret.total_received_production) - (unit_production_cost * ret.total_received_production) - ((ret.interest_rate / 365) * ret.working_capital) - ret.fixed_cost
+                step_profit = (ret.selling_price * ret.total_received_production) - (unit_production_cost * ret.total_received_production) - ((ret.interest_rate / 12) * ret.working_capital) - ret.fixed_cost
                 ret.working_capital += step_profit
 
     def upstream_flow(self) -> None:
