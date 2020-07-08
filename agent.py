@@ -72,12 +72,11 @@ class Agent(Parameters):
         ##Financing attributes:
         self.days_between_financing = days_between_financing
         self.financing_period = financing_period
-        self.credit_capacity = self.working_capital
         self.financing_rate = 0.15
         self.wcap_floor = 0.5 * self.working_capital
         self.liability = 0.0
         self.financing_history = list()
-        self.remaining_credit_capacity = self.credit_capacity
+        self.remaining_credit_capacity = self.working_capital
         self.time_of_next_allowed_financing = 0
 
         self.__check_role()
