@@ -17,7 +17,6 @@ class Order_Package:
 
     order_number = 1
 
-
     def __init__(self, initial_order_amount, retailer_agent_id, order_initialization_step):
         """
         constructor
@@ -31,7 +30,7 @@ class Order_Package:
         self.retailer_agent_id = retailer_agent_id
         self.order_initialization_step = order_initialization_step
 
-        self.manufacturers = list()                                            #List of tuples by the form (agent_id, delivery_period, order_amount)
+        self.manufacturers = list()                                            #List of tuples by the form (agent_id, production_time, order_amount)
         self.suppliers = list()
         
         self.completed_ordering_to_manufacturers = False

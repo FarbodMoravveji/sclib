@@ -67,7 +67,8 @@ class Agent(Parameters):
         self.input_margin = input_margin
         self.interest_rate = interest_rate
         self.ordering_period = ordering_period
-        self.delivery_period = delivery_period
+        self.production_time = delivery_period
+        self.orders_to_deliver = list()
 
         ##Financing attributes:
         self.days_between_financing = days_between_financing
