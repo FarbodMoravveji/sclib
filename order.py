@@ -25,17 +25,25 @@ class Order_Package:
            retailer_agent_id: agent_id related to the retailer.
            order_initialization_step: marks the step that the order object is created.
         """
-        self.order_number = cls.order_number
+        self.order_number = Order_Package.order_number
         self.initial_order_amount = initial_order_amount
+        self.amount_delivered_to_retailer = 0
         self.retailer_agent_id = retailer_agent_id
         self.order_initialization_step = order_initialization_step
 
-        self.manufacturers = list()                                            #List of tuples by the form (agent_id, production_time, order_amount)
-        self.suppliers = list()
-        
+        self.manufacturers = list()                                            #List of tuples by the form (agent_id, production_time, order_amount), delivery_time is added later
+        self.suppliers = list()                                                #List of tuples by the form (agent_id, order_amount, delivery_time, manufacturer_id)
+        self.manufacturer_supplier_pairs = set()
+        self.manufacturer_delivery_plan = list()
+        self.planned_manufacturers = list()
+        self.created_pairs = False
+        self.manufacturers_num_partners = list()
+
         self.completed_ordering_to_manufacturers = False
         self.completed_ordering_to_suppliers = False
+        self.completed_delivering_to_manufacturers = False
+        self.completed_delivering_to_retailer = False
 
         self.order_feasibility = True
 
-        cls.order_number += 1
+        Order_Package.order_number += 1        

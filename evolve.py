@@ -2,6 +2,7 @@ from random import shuffle
 from operator import itemgetter
 import math
 from math import log
+from collections import Counter
 import numpy as np
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
@@ -159,23 +160,23 @@ class Evolve(Recorder):
                 for curr,nexx in zip(elig_manufacturers[:-1], elig_manufacturers[1:]):
                     
                     if curr[1] == nexx[1] and curr[2] + nexx[2] >= order_amount: # If two manufacturers sell with the same price, order is distributed respective to their working capital.
-                    curr_wcap = self.model.find_agent_by_id(curr[0]).working_capital
-                    nexx_wcap = self.model.find_agent_by_id(nexx[0]).working_capital
-                    wcap_at_same_price = curr_wcap + nexx_wcap
-                    amount = order_amount * (curr_wcap / wcap_at_same_price)
-
-                    manufacturer = self.model.find_agent_by_id(curr[0])
-                    manufacturer.orders_to_deliver.append(order.order_number)
-                    order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, manufacturer.prod_cap))
-                    retailer.orders_succeeded += amount
-                    manufacturer.prod_cap -= amount
-                    order_amount -= amount
+                        curr_wcap = self.model.find_agent_by_id(curr[0]).working_capital
+                        nexx_wcap = self.model.find_agent_by_id(nexx[0]).working_capital
+                        wcap_at_same_price = curr_wcap + nexx_wcap
+                        amount = order_amount * (curr_wcap / wcap_at_same_price)
+    
+                        manufacturer = self.model.find_agent_by_id(curr[0])
+                        manufacturer.orders_to_deliver.append(order.order_number)
+                        order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
+                        retailer.orders_succeeded += amount
+                        manufacturer.prod_cap -= amount
+                        order_amount -= amount
 
                     else:                                                      #curr[1] != nexx[1] or curr[2] + nexx[2] <= ret.total_order_quantity:
                         amount = min(curr[2], order_amount)
                         manufacturer = self.model.find_agent_by_id(curr[0])
                         manufacturer.orders_to_deliver.append(order.order_number)
-                        order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, manufacturer.prod_cap))
+                        order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
                         retailer.orders_succeeded += amount
                         manufacturer.prod_cap -= amount
                         order_amount -= amount
@@ -187,17 +188,176 @@ class Evolve(Recorder):
                     amount = min(last_one[2], order_amount)
                     manufacturer = self.find_agent_by_id(last_one[0])
                     manufacturer.orders_to_deliver.append(order.order_number)
-                    order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, manufacturer.prod_cap))
+                    order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
                     retailer.orders_succeeded += amount
                     manufacturer.prod_cap -= amount
                     order_amount -= amount
 
             order.completed_ordering_to_manufacturers = True
+
+    def order_to_supplier(self):
+        orders_to_go_up = [order for order in self.list_orders if 
+                           order.completed_ordering_to_manufacturers == True 
+                           and order.completed_ordering_to_manufacturers == False]
+        
+        if self._do_shuffle:
+            shuffle(orders_to_go_up)                                             # Creates Competetion within stage.
+
+        for order in orders_to_go_up:
+            for order_tuple in order.manufacturers:
+                manufacturer = self.model.find_agent_by_id(order_tuple[0])
+                order_amount = order_tuple[2]
                 
-                
-                
-                
-                
+                if manufacturer.orders_succeeded:
+                    manufacturer.orders_succeeded = 0
+
+                elig_suppliers = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.model.sup_list if agent.prod_cap > 0 and agent.selling_price < manufacturer.selling_price]
+
+                if not elig_suppliers:
+                    order.order_feasibility = False
+                    continue
+                elig_suppliers.sort(key = itemgetter(1))
+                available_capacity = sum(k for _, _, k in elig_suppliers)
+
+                if available_capacity <= order_amount:                 # If available capacity  is less than retailer's total order quantity, retailer will order in sizes equal to manufacturers' production capacity. 
+                    for (agent_id, _, _) in elig_suppliers:
+                        supplier = self.model.find_agent_by_id(agent_id)
+                        supplier.orders_to_deliver.append(order.order_number)
+                        order.suppliers.append((agent_id, supplier.prod_cap, self.current_step + supplier.production_time, manufacturer.agent_id))
+                        supplier.orders_succeeded = available_capacity
+                        supplier.prod_cap = 0
+                else:
+                    for curr,nexx in zip(elig_suppliers[:-1], elig_suppliers[1:]):
+                    
+                        if curr[1] == nexx[1] and curr[2] + nexx[2] >= order_amount: # If two manufacturers sell with the same price, order is distributed respective to their working capital.
+                            curr_wcap = self.model.find_agent_by_id(curr[0]).working_capital
+                            nexx_wcap = self.model.find_agent_by_id(nexx[0]).working_capital
+                            wcap_at_same_price = curr_wcap + nexx_wcap
+                            amount = order_amount * (curr_wcap / wcap_at_same_price)
+        
+                            supplier = self.model.find_agent_by_id(curr[0])
+                            supplier.orders_to_deliver.append(order.order_number)
+                            order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
+                            manufacturer.orders_succeeded += amount
+                            supplier.prod_cap -= amount
+                            order_amount -= amount
+    
+                        else:                                                      #curr[1] != nexx[1] or curr[2] + nexx[2] <= ret.total_order_quantity:
+                            amount = min(curr[2], order_amount)
+                            supplier = self.model.find_agent_by_id(curr[0])
+                            supplier.orders_to_deliver.append(order.order_number)
+                            order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
+                            manufacturer.orders_succeeded += amount
+                            supplier.prod_cap -= amount
+                            order_amount -= amount
+    
+                    if self.model.almost_equal_to_zero(order_amount, manufacturer.abs_tol):
+                        continue
+                    else:
+                        last_one = elig_suppliers[-1]
+                        amount = min(last_one[2], order_amount)
+                        supplier = self.find_agent_by_id(last_one[0])
+                        supplier.orders_to_deliver.append(order.order_number)
+                        order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
+                        manufacturer.orders_succeeded += amount
+                        supplier.prod_cap -= amount
+                        order_amount -= amount
+    
+                order.completed_ordering_to_suppliers = True
+
+    
+    def calculate_order_partners(self):
+        completed_order_flow = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                                        and order.completed_ordering_to_suppliers == True 
+                                        and order.created_pairs == False]
+        for order in completed_order_flow:
+            for (supplier_id, _, _, manufacturer_id) in order.suppliers:
+                if (supplier_id, manufacturer_id) in order.manufacturer_supplier_pairs:
+                    raise Exception(f'There is something wrong with saving orders is order.suppliers; It is saving duplicates')
+                else:
+                    order.manufacturer_supplier_pairs.add((supplier_id, manufacturer_id))
+            order.created_pairs == True
+
+            counter = Counter()
+            for (_, man) in order.manufacturer_supplier_pairs:
+                counter[man] += 1
+
+            for (_, man) in order.manufacturer_supplier_pairs:
+                if (man, counter[man]) in order.manufacturers_num_partners:
+                    continue
+                else:
+                    order.manufacturers_num_partners.append((man, counter[man]))
+
+    def deliver_to_manufacturers(self):
+        begin_delivery_flow = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                               and order.completed_ordering_to_suppliers == True 
+                               and order.created_pairs == True
+                               and order.completed_delivering_to_manufacturers == False]
+        for order in begin_delivery_flow:
+            for(supplier_agent_id, amount, delivery_step, manufacturer_agent_id) in order.suppliers:
+                if (supplier_agent_id, manufacturer_agent_id) not in order.manufacturer_supplier_pairs:
+                    raise Exception(f'There is something wrong with calculate_order_partners method; It is not making all pairs')
+                if delivery_step == self.current_step:
+                    supplier = self.model.find_agent_by_id(supplier_agent_id)
+                    manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
+                    step_income = (supplier.selling_price * amount)          #Calculating profit using a fixed margin for suppliers
+                    supplier.working_capital += step_income
+                    manufacturer.working_capital -= step income
+                    
+                    for index, item in enumerate(order.manufacturers_num_partners):
+                        itemlist = list(item)
+                        if itemlist[0] == manufacturer_agent_id:
+                            itemlist[1] = itemlist[1] - 1
+                        item = tuple(itemlist)
+                        if item[1] == 0:
+                            order.manufacturers_num_partners.remove(order.manufacturers_num_partners[index])
+                        else:
+                            order.manufacturers_num_partners[index] = item
+            if not order.manufacturers_num_partners:
+                order.completed_delivering_to_manufacturers = True
+
+    def plan_delivery_to_retailers(self):
+        plan_delivery_list = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                              and order.completed_ordering_to_suppliers == True 
+                              and order.created_pairs == True]
+        for order in plan_delivery_list:
+            waiting_manufacturers = [manufacturer_agent_id for (manufacturer_agent_id, _) in order.manufacturers_num_partners]
+            for (manufacturer_agent_id, manufacturer_production_time, amount) in order.manufacturers:
+                if manufacturer_agent_id not in waiting_manufacturers and manufacturer_agent_id not in order.planned_manufacturers:
+                    order.manufacturer_delivery_plan.append((manufacturer_agent_id, self.current_step + manufacturer_production_time, amount))
+                    order.planned_manufacturers.append(manufacturer_agent_id)
+
+    def deliver_to_retailer(self):
+        possible_delivery_to_retailer = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                                         and order.completed_ordering_to_suppliers == True 
+                                         and order.created_pairs == True]
+        for order in possible_delivery_to_retailer:
+            if order.manufacturer_delivery_plan:
+                for (manufacturer_agent_id, delivery_step, amount) in order.manufacturer_delivery_plan:
+                    if delivery_step == self.current_step:
+                        retailer = self.model.find_agent_by_id(order.retailer_agent_id)
+                        manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
+                        step_income = (manufacturer.selling_price * amount)          #Calculating profit using a fixed margin for suppliers
+                        manufacturer.working_capital += step_income
+                        retailer.working_capital -= step income
+                        order.amount_delivered_to_retailer += amount
+
+                        for index, item in enumerate(order.manufacturer_delivery_plan):
+                            itemlist = list(item)
+                            if itemlist[0] == manufacturer_agent_id:
+                                order.manufacturer_delivery_plan.remove(order.manufacturer_delivery_plan[index])
+
+    def retailer_delivery(self):
+        possible_delivery_by_retailer = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                                         and order.completed_ordering_to_suppliers == True 
+                                         and order.created_pairs == True
+                                         and order.completed_delivering_to_manufacturers = True]
+        for order in possible_delivery_by_retailer:
+            if order.amount_delivered_to_retailer == order.initial_order_amount:
+                retailer = self.model.find_agent_by_id(order.retailer_agent_id)
+                step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
+                retailer.working_capital -= step income
+            
                 
                 
 
