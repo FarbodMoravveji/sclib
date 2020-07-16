@@ -370,7 +370,6 @@ class Evolve(Recorder):
 
 
 
-
     # def short_term_financing(self) -> None:
     #     """
     #     This method adds to agents' working_capital.

@@ -1,10 +1,3 @@
-from typing import List
-import numpy as np
-import pandas as pd
-
-initial_order_amount: float
-retailer_agent_id: int
-order_initialization_step: int
 
 class Order_Package:
     """
@@ -46,4 +39,4 @@ class Order_Package:
 
         self.order_feasibility = True
 
-        Order_Package.order_number += 1        
+        Order_Package.order_number += 1

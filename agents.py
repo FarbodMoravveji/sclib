@@ -1,8 +1,6 @@
-from operator import itemgetter
 import math
 from math import log
 from typing import List
-from random import shuffle
 import numpy as np
 from sclib.agent import Agent
 
@@ -15,9 +13,6 @@ class Agents:
     ret_list: List[Agent]
     man_list: List[Agent]
     sup_list: List[Agent]
-    do_shuffle: bool
-    random_node_level_disruption: bool
-    seeding: bool
 
     def __init__(self, _list_agents) -> None:
         """
@@ -33,10 +28,6 @@ class Agents:
         self.__break_list()
         self.__check_duplicate_id()
         self.__layers_fulfilled()
-
-        self._do_shuffle = False
-        self._node_level_disruption = False
-        self._seeding = False
 
     @property
     def list_agents(self):
@@ -79,58 +70,8 @@ class Agents:
         if len(role_set) > 3:
             raise ValueError(f"__layers_fulfilled: Model should only consist of three layers, not more")
 
-    def always_shuffle(self) -> None:
-        """
-        Creates competition in the model by shuffling the list of agents.
-        """
-        if not self._do_shuffle:
-            self._do_shuffle = True
 
-    def never_shuffle(self) -> None:
-        """
-        Cancels competition in the model by not shuffling the list of agents.
-        """
-        if self._do_shuffle:
-            self._do_shuffle = False
 
-    def activate_random_node_level_disruption(self) -> None:
-        """
-        Adds uncertainty of delivery to the model. the node_level_disruption flag
-        is False by default, so this method can be called to implement
-        disruption in the model.
-        """
-        if not self._node_level_disruption:
-            self._node_level_disruption = True
-
-    def deactivate_random_node_level_disruption(self) -> None:
-        """
-        This method takes the random_node_level_disruption flag back to its default
-        state.
-        """
-        if self._node_level_disruption:
-            self._node_level_disruption = False
-
-    def turn_off_seeding(self) -> None:
-        """
-        Sets the seeding flag of the model to its default state which is False.
-        """
-        if self._seeding:
-            self._seeding = False
-
-    def turn_on_seeding(self) -> None:
-        """
-        Sets a np.random.seed() method on the model.
-        """
-        if not self._seeding:
-            self._seeding = True
-
-    def __lt__(self, object) -> bool:
-        """
-        necessary for gaining the ability to make instances of a class comparable.
-        """
-        if self.sort_num:
-            return self.number < object.number
-        return self.string < object.string
 
     def almost_equal_to_zero(self, value: float, abs_tol: float) -> bool:
         """
