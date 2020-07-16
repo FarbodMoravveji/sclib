@@ -61,10 +61,11 @@ class Agent(Parameters):
         self.days_between_financing = days_between_financing
         self.financing_period = financing_period
         self.financing_rate = 0.15
-        self.wcap_floor = 0.5 * self.working_capital
+        self.total_credit_capacity = self.working_capital
+        self.current_credit_capacity = 0.0
         self.liability = 0.0
+        self.credit_availability = True
         self.financing_history = list()
-        self.remaining_credit_capacity = self.working_capital
         self.time_of_next_allowed_financing = 0
 
         self.__check_role()
@@ -81,10 +82,7 @@ class Agent(Parameters):
         """
          
         if self.role == self.retailer:
-            self.consumer_demand = 0.0 
-        elif self.role == self.manufacturer:
-        elif self.role == self.supplier:
-
+            self.consumer_demand = 0.0
 
     def __check_role(self) -> None:
         """

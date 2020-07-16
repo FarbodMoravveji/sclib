@@ -103,12 +103,23 @@ class Evolve(Recorder):
         if self._wcap_financing:
             self._wcap_financing = False
 
-    
+    def check_credit_availability(self):
+        for agent in self.model.list_agents:
+            if self.current_step >= agent.time_of_next_allowed_financing and agent.liability < agent.total_credit_capacity:
+                agent.credit_availability = True
+                agent.current_credit_capacity = agent.total_credit_capacity - agent.liability
+            else:
+                agent.credit_availability = False
+
+    def fixed_cost_and_cost_of_capital_subtraction(self):
+        for agent in self.model.list_agents:
+            step_cost = agent.fixed_cost + (agent.interest_rate / 365) * agent.working_capital
+            agent.working_capital -= step_cost
+
     def determine_capacity(self):
         for agent in self.model.list_agents:
-            if self.wcap_financing:
-                if agent.remaining_credit_capacity == True and self.current_step >= agent.time_of_next_allowed_financing:
-                    agent.prod_cap = agent.q * (agent.working_capital + agent.remaining_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
+            if self.wcap_financing and agent.credit_availability:
+                agent.prod_cap = agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
             else:
                 agent.prod_cap = agent.q * agent.working_capital
 
@@ -300,9 +311,15 @@ class Evolve(Recorder):
                 if delivery_step == self.current_step:
                     supplier = self.model.find_agent_by_id(supplier_agent_id)
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
-                    step_income = (supplier.selling_price * amount)          #Calculating profit using a fixed margin for suppliers
+
+                    if amount > supplier.q * supplier.working_capital:
+                        excess_order = order - (supplier.q * supplier.working_capital)
+                        loan_amount = excess_order / supplier.q
+                        self.short_term_financing(supplier_agent_id, loan_amount)
+                    
+                    step_income = (supplier.selling_price * amount) - (1 - supplier.input_margin) * amount       #Calculating profit using a fixed margin for suppliers
                     supplier.working_capital += step_income
-                    manufacturer.working_capital -= step income
+                    manufacturer.working_capital -= supplier.selling_price * amount
                     
                     for index, item in enumerate(order.manufacturers_num_partners):
                         itemlist = list(item)
@@ -316,7 +333,7 @@ class Evolve(Recorder):
             if not order.manufacturers_num_partners:
                 order.completed_delivering_to_manufacturers = True
 
-    def plan_delivery_to_retailers(self):
+    def plan_delivery_to_retailer(self):
         plan_delivery_list = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
                               and order.completed_ordering_to_suppliers == True 
                               and order.created_pairs == True]
@@ -326,6 +343,12 @@ class Evolve(Recorder):
                 if manufacturer_agent_id not in waiting_manufacturers and manufacturer_agent_id not in order.planned_manufacturers:
                     order.manufacturer_delivery_plan.append((manufacturer_agent_id, self.current_step + manufacturer_production_time, amount))
                     order.planned_manufacturers.append(manufacturer_agent_id)
+                    manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
+
+                    if amount > manufacturer.q * manufacturer.working_capital:
+                        excess_order = amount - (manufacturer.q * manufacturer.working_capital)
+                        loan_amount = excess_order / manufacturer.q
+                        self.short_term_financing(manufacturer.agent_id, loan_amount)
 
     def deliver_to_retailer(self):
         possible_delivery_to_retailer = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
@@ -337,9 +360,10 @@ class Evolve(Recorder):
                     if delivery_step == self.current_step:
                         retailer = self.model.find_agent_by_id(order.retailer_agent_id)
                         manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
-                        step_income = (manufacturer.selling_price * amount)          #Calculating profit using a fixed margin for suppliers
+
+                        step_income = (manufacturer.selling_price * amount)        #Calculating profit using a fixed margin for suppliers
                         manufacturer.working_capital += step_income
-                        retailer.working_capital -= step income
+                        retailer.working_capital -= step_income
                         order.amount_delivered_to_retailer += amount
 
                         for index, item in enumerate(order.manufacturer_delivery_plan):
@@ -347,78 +371,80 @@ class Evolve(Recorder):
                             if itemlist[0] == manufacturer_agent_id:
                                 order.manufacturer_delivery_plan.remove(order.manufacturer_delivery_plan[index])
 
+    def plan_delivery_by_retailer(self):
+        plan_delivery_list = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
+                              and order.completed_ordering_to_suppliers == True 
+                              and order.created_pairs == True
+                              and order.amount_delivered_to_retailer == order.initial_order_amount]
+        
+        for order in plan_delivery_list:
+            retailer = self.model.find_agent_by_id(order.retailer_agent_id)
+            order.completion_step = self.current_step + retailer.production_time
+            amount = order.amount_delivered_to_retailer
+
+            if amount > retailer.q * retailer.working_capital:
+                excess_order = amount - (retailer.q * retailer.working_capital)
+                loan_amount = excess_order / retailer.q
+                self.short_term_financing(retailer.agent_id, loan_amount)
+
     def retailer_delivery(self):
-        possible_delivery_by_retailer = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
-                                         and order.completed_ordering_to_suppliers == True 
-                                         and order.created_pairs == True
-                                         and order.completed_delivering_to_manufacturers = True]
-        for order in possible_delivery_by_retailer:
-            if order.amount_delivered_to_retailer == order.initial_order_amount:
-                retailer = self.model.find_agent_by_id(order.retailer_agent_id)
-                step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
-                retailer.working_capital -= step income
-            
+        delivery_by_retailer = [order for order in self.list_orders if order.completion_step == self.current_step]
+        for order in delivery_by_retailer:
+            retailer = self.model.find_agent_by_id(order.retailer_agent_id)
+            step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
+            retailer.working_capital += step_income
+            order.order_completed = True
+
+    def short_term_financing(self, agent_id, amount) -> None:
+        """
+        This method adds to agents' working_capital.
+        """
+        agent = self.model.find_agent_by_id(agent_id)
+        agent.working_capital += amount
+        agent.liability += amount * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
+        agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
+        agent.financing_history.append((amount * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step + agent.financing_period))
+
+    def repay_debt(self) -> None:
+        """
+        This method is used to enable agents to repay the loans.
+        """
+        for agent in self._model.list_agents:
+            if agent.financing_history:
+                for (amount, due_date) in agent.financing_history:
+                    if due_date == self.current_step:
+                        agent.working_capital -= amount
+                        agent.liability -= amount            
+
+    def proceed(self, steps: int) -> None:
+        """
+        Pushes the model forward.
+        """
+        for _ in range(steps):
+            try:
+                self.current_step += 1
+
+                if self._wcap_financing:
+                    self.repay_debt()
+                    self.check_credit_availability()
+
+                self._model.realize_selling_prices()
+                self.fixed_cost_and_cost_of_capital_subtraction()
+                self.determine_capacity()
+                self.receive_order_by_retailers()
+                self.create_order_object()
+                self.order_to_manufacturers()
+                self.order_to_supplier()
+                self.calculate_order_partners()
+                self.deliver_to_manufacturers()
+                self.plan_delivery_to_retailer()
+                self.deliver_to_retailer()
+                self.plan_delivery_by_retailer()
+                self.retailer_delivery()
+
+                self.update_log_wcap()
+                self.update_log_orders()
+                self.update_log_delivery()
                 
-                
-
-
-
-
-                
-
-
-
-
-
-    # def short_term_financing(self) -> None:
-    #     """
-    #     This method adds to agents' working_capital.
-    #     """
-    #     for agent in self._model._list_agents:
-    #         if agent.working_capital <= agent.wcap_floor:
-    #             if self.current_step >= agent.time_of_next_allowed_financing:
-    #                 print(f'current_step == {self.current_step}')
-    #                 print(f'agent {agent.agent_id} with current capital of {agent.working_capital} is receiving financing')
-    #                 wcap_loan = np.random.uniform(low = 0, high = agent.remaining_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
-    #                 agent.working_capital += wcap_loan
-    #                 agent.remaining_credit_capacity -= wcap_loan * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
-    #                 agent.liability += wcap_loan * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
-    #                 agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
-    #                 agent.financing_history.append((wcap_loan * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step + agent.financing_period))  #Financing history is saved as tuples in the form of (repayment_amount, repayment_due_date)
-    #                 print(f'{wcap_loan} Loan is assigned to agent {agent.agent_id}')
-    #                 print(f'agent {agent.agent_id} has {agent.working_capital} working capital after financing')
-
-    # def repay_loans(self) -> None:
-    #     """
-    #     This method is used to enable agents to repay the loans.
-    #     """
-    #     for agent in self._model.list_agents:
-    #         if agent.financing_history:
-    #             for (amount, due_date) in agent.financing_history:
-    #                 if due_date == self.current_step:
-    #                     agent.working_capital -= amount
-    #                     agent.liability -= amount
-    #                     agent.remaining_credit_capacity += amount
-    #                     print(f'agent {agent.agent_id} repaid amount {amount} at step {self.current_step}')
-            
-                
-                
-                
-    # def proceed(self, steps: int) -> None:
-    #     """
-    #     Pushes the model forward.
-    #     """
-    #     for _ in range(steps):
-    #         try:
-    #             self.current_step += 1
-    #             if self._wcap_financing:
-    #                 self.short_term_financing()
-    #             self._model.one_round()
-    #             if self._wcap_financing:
-    #                 self.repay_loans()
-    #             self.update_log_wcap()
-    #             self.update_log_orders()
-    #             self.update_log_delivery()
-                
-    #         except Exception as err:
-    #             print(err)
+            except Exception as err:
+                print(err)
