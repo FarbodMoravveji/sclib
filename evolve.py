@@ -1,7 +1,5 @@
 from random import shuffle
 from operator import itemgetter
-import math
-from math import log
 from collections import Counter
 import numpy as np
 from sclib.recorder import Recorder
@@ -104,6 +102,10 @@ class Evolve(Recorder):
             self._wcap_financing = False
 
     def check_credit_availability(self):
+        """
+        This method takes into account the time gaps between financing and credit capacity 
+        considerations to determine whether an agent can seek financing or not.
+        """
         for agent in self.model.list_agents:
             if self.current_step >= agent.time_of_next_allowed_financing and agent.liability < agent.total_credit_capacity:
                 agent.credit_availability = True
@@ -118,7 +120,7 @@ class Evolve(Recorder):
 
     def determine_capacity(self):
         for agent in self.model.list_agents:
-            if self.wcap_financing and agent.credit_availability:
+            if self._wcap_financing and agent.credit_availability:
                 agent.prod_cap = agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
             else:
                 agent.prod_cap = agent.q * agent.working_capital
@@ -136,7 +138,6 @@ class Evolve(Recorder):
             if ret.consumer_demand:
                 order_object = Order_Package(ret.consumer_demand, ret.agent_id, self.current_step)
                 self.list_orders.append(order_object)
-                ret.orders_to_deliver.append(order_object.order_number)
 
     def order_to_manufacturers(self):
         orders_to_go_up = [order for order in self.list_orders if 
@@ -151,7 +152,7 @@ class Evolve(Recorder):
             if retailer.orders_succeeded:
                 retailer.orders_succeeded = 0
 
-            elig_manufacturers= [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.model.man_list if agent.prod_cap > 0 and agent.selling_price < retailer.selling_price]
+            elig_manufacturers = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.model.man_list if agent.prod_cap > 0 and agent.selling_price < retailer.selling_price]
             
             if not elig_manufacturers:
                 order.order_feasibility = False
@@ -163,12 +164,14 @@ class Evolve(Recorder):
             if available_capacity <= order_amount:                 # If available capacity  is less than retailer's total order quantity, retailer will order in sizes equal to manufacturers' production capacity. 
                 for (agent_id, _, _) in elig_manufacturers:
                     manufacturer = self.model.find_agent_by_id(agent_id)
-                    manufacturer.orders_to_deliver.append(order.order_number)
                     order.manufacturers.append((agent_id, manufacturer.production_time, manufacturer.prod_cap))
                     retailer.orders_succeeded = available_capacity
                     manufacturer.prod_cap = 0
             else:
                 for curr,nexx in zip(elig_manufacturers[:-1], elig_manufacturers[1:]):
+                    
+                    if self.almost_equal_to_zero(order_amount, retailer.abs_tol):
+                        continue
                     
                     if curr[1] == nexx[1] and curr[2] + nexx[2] >= order_amount: # If two manufacturers sell with the same price, order is distributed respective to their working capital.
                         curr_wcap = self.model.find_agent_by_id(curr[0]).working_capital
@@ -177,7 +180,6 @@ class Evolve(Recorder):
                         amount = order_amount * (curr_wcap / wcap_at_same_price)
     
                         manufacturer = self.model.find_agent_by_id(curr[0])
-                        manufacturer.orders_to_deliver.append(order.order_number)
                         order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
                         retailer.orders_succeeded += amount
                         manufacturer.prod_cap -= amount
@@ -186,7 +188,6 @@ class Evolve(Recorder):
                     else:                                                      #curr[1] != nexx[1] or curr[2] + nexx[2] <= ret.total_order_quantity:
                         amount = min(curr[2], order_amount)
                         manufacturer = self.model.find_agent_by_id(curr[0])
-                        manufacturer.orders_to_deliver.append(order.order_number)
                         order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
                         retailer.orders_succeeded += amount
                         manufacturer.prod_cap -= amount
@@ -197,8 +198,7 @@ class Evolve(Recorder):
                 else:
                     last_one = elig_manufacturers[-1]
                     amount = min(last_one[2], order_amount)
-                    manufacturer = self.find_agent_by_id(last_one[0])
-                    manufacturer.orders_to_deliver.append(order.order_number)
+                    manufacturer = self.model.find_agent_by_id(last_one[0])
                     order.manufacturers.append((manufacturer.agent_id, manufacturer.production_time, amount))
                     retailer.orders_succeeded += amount
                     manufacturer.prod_cap -= amount
@@ -233,13 +233,15 @@ class Evolve(Recorder):
                 if available_capacity <= order_amount:                 # If available capacity  is less than retailer's total order quantity, retailer will order in sizes equal to manufacturers' production capacity. 
                     for (agent_id, _, _) in elig_suppliers:
                         supplier = self.model.find_agent_by_id(agent_id)
-                        supplier.orders_to_deliver.append(order.order_number)
                         order.suppliers.append((agent_id, supplier.prod_cap, self.current_step + supplier.production_time, manufacturer.agent_id))
                         supplier.orders_succeeded = available_capacity
                         supplier.prod_cap = 0
                 else:
                     for curr,nexx in zip(elig_suppliers[:-1], elig_suppliers[1:]):
-                    
+
+                    if self.almost_equal_to_zero(order_amount, retailer.abs_tol):
+                        continue
+
                         if curr[1] == nexx[1] and curr[2] + nexx[2] >= order_amount: # If two manufacturers sell with the same price, order is distributed respective to their working capital.
                             curr_wcap = self.model.find_agent_by_id(curr[0]).working_capital
                             nexx_wcap = self.model.find_agent_by_id(nexx[0]).working_capital
@@ -247,7 +249,6 @@ class Evolve(Recorder):
                             amount = order_amount * (curr_wcap / wcap_at_same_price)
         
                             supplier = self.model.find_agent_by_id(curr[0])
-                            supplier.orders_to_deliver.append(order.order_number)
                             order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                             manufacturer.orders_succeeded += amount
                             supplier.prod_cap -= amount
@@ -256,7 +257,6 @@ class Evolve(Recorder):
                         else:                                                      #curr[1] != nexx[1] or curr[2] + nexx[2] <= ret.total_order_quantity:
                             amount = min(curr[2], order_amount)
                             supplier = self.model.find_agent_by_id(curr[0])
-                            supplier.orders_to_deliver.append(order.order_number)
                             order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                             manufacturer.orders_succeeded += amount
                             supplier.prod_cap -= amount
@@ -267,8 +267,7 @@ class Evolve(Recorder):
                     else:
                         last_one = elig_suppliers[-1]
                         amount = min(last_one[2], order_amount)
-                        supplier = self.find_agent_by_id(last_one[0])
-                        supplier.orders_to_deliver.append(order.order_number)
+                        supplier = self.model.find_agent_by_id(last_one[0])
                         order.suppliers.append((supplier.agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                         manufacturer.orders_succeeded += amount
                         supplier.prod_cap -= amount
@@ -443,8 +442,8 @@ class Evolve(Recorder):
                 self.retailer_delivery()
 
                 self.update_log_wcap()
-                self.update_log_orders()
-                self.update_log_delivery()
+                # self.update_log_orders()
+                # self.update_log_delivery()
                 
             except Exception as err:
                 print(err)

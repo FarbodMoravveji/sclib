@@ -2,7 +2,7 @@
 class Order_Package:
     """
     An instance of this class is created each time an order is received by any
-    agent in the output layer. The mentioned instance will exist in the model 
+    agent in the output layer. The mentioned instance remains active in the model 
     until the order is delivered by the output layer and throughout this process
     the instance will be manipulated in order to keep track of the ordering 
     and delivery actions related to the initial irder.
@@ -23,7 +23,7 @@ class Order_Package:
         self.amount_delivered_to_retailer = 0
         self.retailer_agent_id = retailer_agent_id
         self.order_initialization_step = order_initialization_step
-        self.order_completion_step = 0
+        self.completion_step = 0
 
         self.manufacturers = list()                                            #List of tuples by the form (agent_id, production_time, order_amount), delivery_time is added later
         self.suppliers = list()                                                #List of tuples by the form (agent_id, order_amount, delivery_time, manufacturer_id)
