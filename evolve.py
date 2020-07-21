@@ -219,7 +219,7 @@ class Evolve(Recorder):
             for (supplier_id, _, _, manufacturer_id) in order.suppliers:
                 order.manufacturer_supplier_pairs.add((supplier_id, manufacturer_id))
 
-            order.created_pairs == True
+            order.created_pairs = True
 
             counter = Counter()
             for (_, man) in order.manufacturer_supplier_pairs:
@@ -244,7 +244,7 @@ class Evolve(Recorder):
                     supplier = self.model.find_agent_by_id(supplier_agent_id)
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
-                    if amount > supplier.q * supplier.working_capital:
+                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
                         excess_order = order - (supplier.q * supplier.working_capital)
                         loan_amount = excess_order / supplier.q
                         self.short_term_financing(supplier_agent_id, loan_amount)
@@ -277,7 +277,7 @@ class Evolve(Recorder):
                     order.planned_manufacturers.append(manufacturer_agent_id)
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
-                    if amount > manufacturer.q * manufacturer.working_capital:
+                    if amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing:
                         excess_order = amount - (manufacturer.q * manufacturer.working_capital)
                         loan_amount = excess_order / manufacturer.q
                         self.short_term_financing(manufacturer.agent_id, loan_amount)
@@ -302,25 +302,28 @@ class Evolve(Recorder):
                             itemlist = list(item)
                             if itemlist[0] == manufacturer_agent_id:
                                 order.manufacturer_delivery_plan.remove(order.manufacturer_delivery_plan[index])
+                                order.num_delivered_to_retailer += 1
 
     def plan_delivery_by_retailer(self):
-        plan_delivery_list = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
-                              and order.completed_ordering_to_suppliers == True 
-                              and order.created_pairs == True
-                              and order.amount_delivered_to_retailer == order.initial_order_amount]
-        
+        plan_delivery_list = [order for order in self.list_orders if order.completed_delivering_to_manufacturers
+                              and not order.planned_delivery_by_retailer
+                              and order.num_delivered_to_retailer == order.num_manufacturers]
+
         for order in plan_delivery_list:
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             order.completion_step = self.current_step + retailer.production_time
             amount = order.amount_delivered_to_retailer
+            order.planned_delivery_by_retailer = True
 
-            if amount > retailer.q * retailer.working_capital:
+            if amount > retailer.q * retailer.working_capital and self._wcap_financing:
                 excess_order = amount - (retailer.q * retailer.working_capital)
                 loan_amount = excess_order / retailer.q
                 self.short_term_financing(retailer.agent_id, loan_amount)
 
     def retailer_delivery(self):
-        delivery_by_retailer = [order for order in self.list_orders if order.completion_step == self.current_step]
+        delivery_by_retailer = [order for order in self.list_orders if order.completed_delivering_to_manufacturers
+                                and not order.order_completed
+                                and order.completion_step == self.current_step]
         for order in delivery_by_retailer:
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
@@ -368,11 +371,11 @@ class Evolve(Recorder):
                 self.order_to_manufacturers()
                 self.order_to_suppliers()
                 self.calculate_order_partners()
-                # self.deliver_to_manufacturers()
-                # self.plan_delivery_to_retailer()
-                # self.deliver_to_retailer()
-                # self.plan_delivery_by_retailer()
-                # self.retailer_delivery()
+                self.deliver_to_manufacturers()
+                self.plan_delivery_to_retailer()
+                self.deliver_to_retailer()
+                self.plan_delivery_by_retailer()
+                self.retailer_delivery()
 
                 # self.update_log_wcap()
                 # self.update_log_orders()

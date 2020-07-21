@@ -25,6 +25,7 @@ class Order_Package:
         self.order_initialization_step = order_initialization_step
         self.completion_step = 0
         self.num_manufacturers = 0
+        self.num_delivered_to_retailer = 0
 
         self.manufacturers = list()                                            #List of tuples by the form (agent_id, production_time, order_amount), delivery_time is added later
         self.suppliers = list()                                                #List of tuples by the form (agent_id, order_amount, delivery_time, manufacturer_id)
@@ -37,7 +38,7 @@ class Order_Package:
         self.completed_ordering_to_manufacturers = False
         self.completed_ordering_to_suppliers = False
         self.completed_delivering_to_manufacturers = False
-        self.completed_delivering_to_retailer = False
+        self.planned_delivery_by_retailer = False
         self.order_completed = False
 
         self.order_feasibility = True
