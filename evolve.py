@@ -245,7 +245,7 @@ class Evolve(Recorder):
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
                     if amount > supplier.q * supplier.working_capital and self._wcap_financing:
-                        excess_order = order - (supplier.q * supplier.working_capital)
+                        excess_order = amount - (supplier.q * supplier.working_capital)
                         loan_amount = excess_order / supplier.q
                         self.short_term_financing(supplier_agent_id, loan_amount)
                     
@@ -377,7 +377,7 @@ class Evolve(Recorder):
                 self.plan_delivery_by_retailer()
                 self.retailer_delivery()
 
-                # self.update_log_wcap()
+                self.update_log_wcap()
                 # self.update_log_orders()
                 # self.update_log_delivery()
                 
