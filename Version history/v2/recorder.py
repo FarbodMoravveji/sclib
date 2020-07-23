@@ -147,54 +147,55 @@ class Recorder:
 
         self.log_working_capital[f'step_{self.current_step}'] = wcv
 
-    # def update_log_orders(self) -> None:
-    #     """
-    #     This method adds a new column to the log_orders DataFrame after each step.
-    #     The mentioned task is carried out by: 1- Creating a temporary DataFrame
-    #     of the newly updated order amounts, 2- Concatenating the temporary 
-    #     DataFrame with the existing self.log_orders.
-    #     """
-    #     wcv = np.zeros(self.n_agents)                                          
-    #     rle = ['r','m']
-    #     for (i, elem) in enumerate(self.list_agents):
-    #         if elem.role in rle:
-    #             wcv[i] = elem.orders_succeeded
-    #         else:
-    #             wcv[i] = elem.received_orders     
+    def update_log_orders(self) -> None:
+        """
+        This method adds a new column to the log_orders DataFrame after each step.
+        The mentioned task is carried out by: 1- Creating a temporary DataFrame
+        of the newly updated order amounts, 2- Concatenating the temporary 
+        DataFrame with the existing self.log_orders.
+        """
+        wcv = np.zeros(self.n_agents)                                          
+        rle = ['r','m']
+        for (i, elem) in enumerate(self.list_agents):
+            if elem.role in rle:
+                wcv[i] = elem.orders_succeeded
+            else:
+                wcv[i] = elem.received_orders     
 
-    #     self.log_orders[f'step_{self.current_step}'] = wcv
+        self.log_orders[f'step_{self.current_step}'] = wcv
 
-    # def update_log_delivery(self) -> None:
-    #     """
-    #     This method adds a new column to the log_orders DataFrame after each step.
-    #     The mentioned task is carried out by: 1- Creating a temporary DataFrame
-    #     of the newly updated order amounts, 2- Concatenating the temporary 
-    #     DataFrame with the existing self.log_orders.
-    #     """
-    #     wcv = np.zeros(self.n_agents)                                           
-    #     re = ['m','s']
-    #     for (i, elem) in enumerate(self.list_agents):
-    #         if elem.role in re:
-    #             wcv[i] = elem.step_production
-    #         else:
-    #             wcv[i] = elem.total_received_production
+    def update_log_delivery(self) -> None:
+        """
+        This method adds a new column to the log_orders DataFrame after each step.
+        The mentioned task is carried out by: 1- Creating a temporary DataFrame
+        of the newly updated order amounts, 2- Concatenating the temporary 
+        DataFrame with the existing self.log_orders.
+        """
+        wcv = np.zeros(self.n_agents)                                           
+        re = ['m','s']
+        for (i, elem) in enumerate(self.list_agents):
+            if elem.role in re:
+                wcv[i] = elem.step_production
+            else:
+                wcv[i] = elem.total_received_production
 
-    #     self.log_delivery[f'step_{self.current_step}'] = wcv
+        self.log_delivery[f'step_{self.current_step}'] = wcv
         
     def step_profit_dataframe(self) -> DataFrame:
         """
         Uses the log_working_capital DataFrame to create a new DataFrame containing
         step profot values with dimensions identical to log_working_capital.
+        This method should be called after running the model for a couple of steps.
         """
         log_step_profit = self.log_working_capital.diff(axis = 1)
         log_step_profit.fillna(0, inplace = True)
         return log_step_profit
-    
+
     def Average_Profit_Dataframe(self) -> DataFrame:
         """
-        Returns a DataFrame containing average profit per step for each agent.
+        This method returns a DataFrame containing the average profit of each 
+        agent per step.
         """
-        step_profit = self.step_profit_dataframe()
-        mean_dataframe = step_profit.mean(axis = 1)
+        mean_dataframe = self.step_profit_dataframe().mean(axis = 1)
         average_profit_dataframe = pd.DataFrame(mean_dataframe, columns =['average_profit_per_step'])
         return average_profit_dataframe
