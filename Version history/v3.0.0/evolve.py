@@ -1,9 +1,7 @@
 from random import shuffle
 from operator import itemgetter
 from collections import Counter
-from statistics import mean
 import numpy as np
-import pandas as pd
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
 
@@ -111,16 +109,6 @@ class Evolve(Recorder):
         for agent in self.model.list_agents:
             if self.current_step >= agent.time_of_next_allowed_financing and agent.liability < agent.total_credit_capacity:
                 agent.credit_availability = True
-                if self.current_step > 20:
-                    members = agent.days_between_financing
-                    roww = agent.agent_id
-                    df = self.log_working_capital
-                    col = list(df.columns)
-                    mycol = col[-members:]
-                    intlist = list()
-                    for columnn in mycol:
-                        intlist.append(df.iloc[roww][columnn])
-                    agent.total_credit_capacity = mean(intlist)
                 agent.current_credit_capacity = agent.total_credit_capacity - agent.liability
             else:
                 agent.credit_availability = False
@@ -133,9 +121,9 @@ class Evolve(Recorder):
     def determine_capacity(self):
         for agent in self.model.list_agents:
             if self._wcap_financing and agent.credit_availability:
-                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period)))))
+                agent.prod_cap = agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
             else:
-                agent.prod_cap = max(0, agent.q * agent.working_capital)
+                agent.prod_cap = agent.q * agent.working_capital
 
     def receive_order_by_retailers(self):
         for ret in self.model.ret_list:
@@ -163,7 +151,7 @@ class Evolve(Recorder):
             
             if retailer.orders_succeeded:
                 retailer.orders_succeeded = 0
-
+            
             elig = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.model.man_list if agent.prod_cap > 0 and agent.selling_price < retailer.selling_price]
             
             if not elig:
@@ -189,7 +177,7 @@ class Evolve(Recorder):
         orders_to_go_up = [order for order in self.list_orders if 
                            order.completed_ordering_to_manufacturers == True 
                            and order.completed_ordering_to_suppliers == False]
-
+        
         if self._do_shuffle:
             shuffle(orders_to_go_up)                                             # Creates Competetion within stage.
 
@@ -220,7 +208,6 @@ class Evolve(Recorder):
                     order.suppliers.append((agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                     manufacturer.orders_succeeded += amount
                     remaining_order_amount -= amount
-                    supplier.working_capital -= (1 - supplier.input_margin) * amount
 
                 order.completed_ordering_to_suppliers = True
 
@@ -261,8 +248,8 @@ class Evolve(Recorder):
                         excess_order = amount - (supplier.q * supplier.working_capital)
                         loan_amount = excess_order / supplier.q
                         self.short_term_financing(supplier_agent_id, loan_amount)
-
-                    step_income = (supplier.selling_price * amount)            #Calculating profit using a fixed margin for suppliers
+                    
+                    step_income = (supplier.selling_price * amount) - (1 - supplier.input_margin) * amount       #Calculating profit using a fixed margin for suppliers
                     supplier.working_capital += step_income
                     manufacturer.working_capital -= supplier.selling_price * amount
                     
@@ -351,7 +338,7 @@ class Evolve(Recorder):
         agent.working_capital += amount
         agent.liability += amount * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
         agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
-        agent.financing_history.append((amount * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step, self.current_step + agent.financing_period))
+        agent.financing_history.append((amount * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step + agent.financing_period))
 
     def repay_debt(self) -> None:
         """
@@ -359,24 +346,10 @@ class Evolve(Recorder):
         """
         for agent in self._model.list_agents:
             if agent.financing_history:
-                for (amount, _, due_date) in agent.financing_history:
+                for (amount, due_date) in agent.financing_history:
                     if due_date == self.current_step:
-                        if agent.working_capital < amount:
-                            print(f'**default situation for agent {agent.agent_id} at step {self.current_step}')
                         agent.working_capital -= amount
                         agent.liability -= amount            
-
-    def check_for_bankruptcy(self):
-        for agent in self.model.list_agents:
-            if not agent.bankruptcy and agent.liability > agent.working_capital:
-                print(f'agent {agent.agent_id} went bankrupt in step {self.current_step} with liability = {agent.liability} and working_capital = {agent.working_capital}')
-                agent.bankruptcy = True
-
-    def check_for_bankruptcy_recovery(self):
-        for agent in self.model.list_agents:
-            if agent.bankruptcy and agent.liability < agent.working_capital:
-                print(f'agent {agent.agent_id} recovered from bankruptcy in step {self.current_step} with liability = {agent.liability} and working_capital = {agent.working_capital}')
-                agent.bankruptcy = False
 
     def proceed(self, steps: int) -> None:
         """
@@ -403,10 +376,6 @@ class Evolve(Recorder):
                 self.deliver_to_retailer()
                 self.plan_delivery_by_retailer()
                 self.retailer_delivery()
-
-                if self._wcap_financing:
-                    self.check_for_bankruptcy()
-                    self.check_for_bankruptcy_recovery()
 
                 self.update_log_wcap()
                 # self.update_log_orders()

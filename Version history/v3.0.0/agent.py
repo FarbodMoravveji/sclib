@@ -64,11 +64,10 @@ class Agent(Parameters):
         self.total_credit_capacity = self.working_capital
         self.current_credit_capacity = 0.0
         self.liability = 0.0
+        self.credit_availability = False
         self.financing_history = list()
         self.time_of_next_allowed_financing = 0
-        self.bankruptcy = False
-        self.credit_availability = False
-        self.log_liability = list()
+
         self.__check_role()
         self.__assign_role_specific_attributes()
 
