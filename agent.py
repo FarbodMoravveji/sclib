@@ -60,6 +60,8 @@ class Agent(Parameters):
         self.fixed_assets = fixed_assets
         self.inventory_value = 0
         self.inventory_track = list()
+        self.total_assets = 0
+        self.total_liabilities = 0
 
         ##Financing attributes:
         self.days_between_financing = days_between_financing

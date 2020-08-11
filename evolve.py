@@ -102,7 +102,7 @@ class Evolve(Recorder):
         if self._wcap_financing:
             self._wcap_financing = False
 
-    def calculate_inventory_value(self):
+    def calculate_inventory_values(self):
         """
         This method calculates inventory value at the current step
         """
@@ -111,9 +111,17 @@ class Evolve(Recorder):
                 agent.inventory_value = 0
             else:
                 cur_inv = 0
-                for (val,_) in agent.inventory_track:
+                for (val,due_date) in agent.inventory_track:
                     cur_inv += val
+                    if due_date < self.current_step:
+                        raise Exception(f'old inventories are not correctly deleted from inventory-track')
                 agent.inventory_value = cur_inv
+
+    def update_total_assets_and_liabilities(self):
+        for agent in self.model.list_agents:
+            agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value
+            agent.total_liabilities = agent.liability
+        
 
     def check_credit_availability(self):
         """
@@ -380,9 +388,10 @@ class Evolve(Recorder):
         """
         agent = self.model.find_agent_by_id(agent_id)
         agent.working_capital += amount
-        agent.liability += amount * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
+        compounded_value = (amount) * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
+        agent.liability += compounded_value
         agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
-        agent.financing_history.append((amount * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step, self.current_step + agent.financing_period))
+        agent.financing_history.append((compounded_value, self.current_step, self.current_step + agent.financing_period))
 
     def repay_debt(self) -> None:
         """
@@ -417,7 +426,9 @@ class Evolve(Recorder):
             try:
                 self.current_step += 1
 
-                self.calculate_inventory_value()
+                self.calculate_inventory_values()
+                self.update_total_assets_and_liabilities()
+
                 if self._wcap_financing:
                     self.repay_debt()
                     self.check_credit_availability()
