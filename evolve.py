@@ -3,7 +3,6 @@ from operator import itemgetter
 from collections import Counter
 from statistics import mean
 import numpy as np
-import pandas as pd
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
 
@@ -102,6 +101,19 @@ class Evolve(Recorder):
         """
         if self._wcap_financing:
             self._wcap_financing = False
+
+    def calculate_inventory_value(self):
+        """
+        This method calculates inventory value at the current step
+        """
+        for agent in self.model.list_agents:
+            if not agent.inventory_track:
+                agent.inventory_value = 0
+            else:
+                cur_inv = 0
+                for (val,_) in agent.inventory_track:
+                    cur_inv += val
+                agent.inventory_value = cur_inv
 
     def check_credit_availability(self):
         """
@@ -220,7 +232,15 @@ class Evolve(Recorder):
                     order.suppliers.append((agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                     manufacturer.orders_succeeded += amount
                     remaining_order_amount -= amount
-                    supplier.working_capital -= (1 - supplier.input_margin) * amount
+                    price_to_pay = (1 - supplier.input_margin) * amount
+                    
+                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
+                        excess_order = amount - (supplier.q * supplier.working_capital)
+                        loan_amount = excess_order / supplier.q
+                        self.short_term_financing(supplier.agent_id, loan_amount)
+                    
+                    supplier.working_capital -= price_to_pay
+                    supplier.inventory_track.append((price_to_pay, self.current_step + supplier.production_time)) #When the agent pays for raw material, it is stored in inventory_track as the tuple (value,due_date)
 
                 order.completed_ordering_to_suppliers = True
 
@@ -257,14 +277,15 @@ class Evolve(Recorder):
                     supplier = self.model.find_agent_by_id(supplier_agent_id)
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
-                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
-                        excess_order = amount - (supplier.q * supplier.working_capital)
-                        loan_amount = excess_order / supplier.q
-                        self.short_term_financing(supplier_agent_id, loan_amount)
-
-                    step_income = (supplier.selling_price * amount)            #Calculating profit using a fixed margin for suppliers
+                    step_income = supplier.selling_price * amount            #Calculating profit using a fixed margin for suppliers
                     supplier.working_capital += step_income
-                    manufacturer.working_capital -= supplier.selling_price * amount
+                    for tup in supplier.inventory_track:
+                        if tup[1] == self.current_step:
+                            supplier.inventory_track.remove(tup)
+
+                    price_to_pay = step_income
+                    manufacturer.working_capital -= price_to_pay
+                    manufacturer.inventory_track.append((price_to_pay, self.current_step + manufacturer.production_time))
                     
                     for index, item in enumerate(order.manufacturers_num_partners):
                         itemlist = list(item)
@@ -308,7 +329,14 @@ class Evolve(Recorder):
 
                         step_income = (manufacturer.selling_price * amount)        #Calculating profit using a fixed margin for suppliers
                         manufacturer.working_capital += step_income
-                        retailer.working_capital -= step_income
+                        for tup in manufacturer.inventory_track:
+                            if tup[1] == self.current_step:
+                                manufacturer.inventory_track.remove(tup)
+                        
+                        price_to_pay = step_income
+                        retailer.working_capital -= price_to_pay
+                        retailer.inventory_track.append((price_to_pay, self.current_step + retailer.production_time))
+
                         order.amount_delivered_to_retailer += amount
 
                         for index, item in enumerate(order.manufacturer_delivery_plan):
@@ -341,6 +369,9 @@ class Evolve(Recorder):
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
             retailer.working_capital += step_income
+            for tup in retailer.inventory_track:
+                if tup[1] == self.current_step:
+                    retailer.inventory_track.remove(tup)
             order.order_completed = True
 
     def short_term_financing(self, agent_id, amount) -> None:
@@ -386,6 +417,7 @@ class Evolve(Recorder):
             try:
                 self.current_step += 1
 
+                self.calculate_inventory_value()
                 if self._wcap_financing:
                     self.repay_debt()
                     self.check_credit_availability()

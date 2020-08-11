@@ -58,6 +58,8 @@ class Agent(Parameters):
         self.ordering_period = ordering_period
         self.production_time = delivery_period
         self.fixed_assets = fixed_assets
+        self.inventory_value = 0
+        self.inventory_track = list()
 
         ##Financing attributes:
         self.days_between_financing = days_between_financing
