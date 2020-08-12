@@ -2,6 +2,7 @@ from random import shuffle
 from operator import itemgetter
 from collections import Counter
 from statistics import mean
+from statistics import stdev
 import numpy as np
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
@@ -117,11 +118,32 @@ class Evolve(Recorder):
                         raise Exception(f'old inventories are not correctly deleted from inventory-track')
                 agent.inventory_value = cur_inv
 
-    def update_total_assets_and_liabilities(self):
+    def update_total_assets_and_liabilities_and_equity(self):
         for agent in self.model.list_agents:
             agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value
             agent.total_liabilities = agent.liability
-        
+            agent.equity = agent.total_assets - agent.total_liabilities
+            agent.list_equity.append(agent.equity)
+            if self.current_step > 300:
+                agent.sigma_equity = stdev(agent.list_equity)
+
+    def calculate_duration_of_obligations(self):
+        """
+        Calculates the duration of all remaining loan obligations to be used as
+        T in KMV formulation.
+        """
+        for agent in self.model.list_agents:
+            l = list()
+            if agent.financing_history:
+                for (amount, _, due_date) in agent.financing_history:
+                    if due_date > self.current_step:
+                        l.append((amount, due_date - self.cuurent_step))
+                present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
+                pv_of_total_obligations = sum(i for i, _ in present_value)
+                timed_obligations = sum(i * j for i, j in present_value)
+                agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
+            else:
+                agent.duration_of_obligations = 0
 
     def check_credit_availability(self):
         """
@@ -153,7 +175,7 @@ class Evolve(Recorder):
     def determine_capacity(self):
         for agent in self.model.list_agents:
             if self._wcap_financing and agent.credit_availability:
-                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period)))))
+                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)))
             else:
                 agent.prod_cap = max(0, agent.q * agent.working_capital)
 
@@ -388,7 +410,7 @@ class Evolve(Recorder):
         """
         agent = self.model.find_agent_by_id(agent_id)
         agent.working_capital += amount
-        compounded_value = (amount) * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
+        compounded_value = (amount) * ((1 + (agent.financing_rate / 365)) ** (agent.financing_period))
         agent.liability += compounded_value
         agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
         agent.financing_history.append((compounded_value, self.current_step, self.current_step + agent.financing_period))
@@ -427,7 +449,8 @@ class Evolve(Recorder):
                 self.current_step += 1
 
                 self.calculate_inventory_values()
-                self.update_total_assets_and_liabilities()
+                self.update_total_assets_and_liabilities_and_equity()
+                self.calculate_duration_of_obligations()
 
                 if self._wcap_financing:
                     self.repay_debt()
