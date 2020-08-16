@@ -3,6 +3,7 @@ from operator import itemgetter
 from collections import Counter
 from statistics import mean
 from statistics import stdev
+import scipy.stats as stats
 import numpy as np
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
@@ -103,6 +104,43 @@ class Evolve(Recorder):
         if self._wcap_financing:
             self._wcap_financing = False
 
+    def N(self, x):
+        return stats.norm.cdf(x)
+
+    def calculate_assets_and_sigma_assets(self, E, D, T, r, sigmaE):
+        """
+        This method estimates assets market value and its standard deviation by
+        simulating KMV formulations.
+        """
+        n=10000
+        m=2000
+        diffOld=1e6 # a very big number
+        for i in np.arange(1,10):
+            for j in np.arange(1,m):
+                A=E+D/2+i*D/n
+                sigmaA=0.05+j*(1.0-0.001)/m
+                d1 = (np.log(A/D)+(r+sigmaA*sigmaA/2.)*T)/(sigmaA*np.sqrt(T))
+                d2 = d1-sigmaA*np.sqrt(T)
+                diff4A= (A*self.N(d1)-D*np.exp(-r*T)*self.N(d2)-E)/A # scale by assets
+                diff4sigmaE= A/E*self.N(d1)*sigmaA-sigmaE # a small number
+                diffNew=abs(diff4A)+abs(diff4sigmaE)
+                if diffNew<diffOld:
+                    diffOld=diffNew
+                    output=(round(A,2),round(sigmaA,4),round(diffNew,5))
+        return output
+
+    def credit_calculations(self):
+        """
+        This method calculates agent's distance to default and default probability
+        using the calculate_assets_and_sigma_assets method to estimate market value
+        of assets and sigma assets.
+        """
+        for agent in self.model.list_agents:
+            assets, sigma_assets, _ = self.calculate_assets_and_sigma_assets(agent.equity, agent.total_liabilities + 1, agent.duration_of_obligations, agent.financing_rate, agent.sigma_equity)
+            agent.distance_to_default = (assets - agent.total_liabilities) / (assets * sigma_assets)
+            agent.default_probability = self.N(-agent.distance_to_default)
+            agent.default_probability_history.append((agent.default_probability, self.current_step))
+
     def calculate_inventory_values(self):
         """
         This method calculates inventory value at the current step
@@ -115,7 +153,7 @@ class Evolve(Recorder):
                 for (val,due_date) in agent.inventory_track:
                     cur_inv += val
                     if due_date < self.current_step:
-                        raise Exception(f'old inventories are not correctly deleted from inventory-track')
+                        raise Exception(f'old inventories are not correctly deleted from inventory_track')
                 agent.inventory_value = cur_inv
 
     def update_total_assets_and_liabilities_and_equity(self):
@@ -137,13 +175,16 @@ class Evolve(Recorder):
             if agent.financing_history:
                 for (amount, _, due_date) in agent.financing_history:
                     if due_date > self.current_step:
-                        l.append((amount, due_date - self.cuurent_step))
+                        l.append((amount, due_date - self.current_step))
                 present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
                 pv_of_total_obligations = sum(i for i, _ in present_value)
-                timed_obligations = sum(i * j for i, j in present_value)
-                agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
+                if pv_of_total_obligations != 0:
+                    timed_obligations = sum(i * j for i, j in present_value)
+                    agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
+                else:
+                    agent.duration_of_obligations = 1
             else:
-                agent.duration_of_obligations = 0
+                agent.duration_of_obligations = 1
 
     def check_credit_availability(self):
         """
@@ -447,10 +488,13 @@ class Evolve(Recorder):
         for _ in range(steps):
             try:
                 self.current_step += 1
+                print(f'at step: {self.current_step}')
 
                 self.calculate_inventory_values()
                 self.update_total_assets_and_liabilities_and_equity()
                 self.calculate_duration_of_obligations()
+                if self.current_step > 300:
+                    self.credit_calculations()
 
                 if self._wcap_financing:
                     self.repay_debt()

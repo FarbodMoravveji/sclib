@@ -70,6 +70,9 @@ class Agent(Parameters):
         self.estimated_assets = 0
         self.estimated_sigma_assets = 0
         self.duration_of_obligations = 0
+        self.distance_to_default = 0
+        self.default_probability = 0
+        self.default_probability_history = list()
         
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
