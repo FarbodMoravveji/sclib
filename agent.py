@@ -29,7 +29,9 @@ class Agent(Parameters):
                  financing_period: int = 90,
                  ordering_period: int = 0,
                  delivery_period: int = 2,
-                 fixed_assets: float = 2000):
+                 fixed_assets: float = 2000,
+                 payment_term: int = 10,
+                 tc_rate = 0.1):
         """
         constructor
          Inputs:
@@ -73,6 +75,12 @@ class Agent(Parameters):
         self.distance_to_default = 0
         self.default_probability = 0
         self.default_probability_history = list()
+        self.payment_term = payment_term
+        self.tc_rate = tc_rate
+        self.receivables = list()
+        self.receivables_value = 0
+        self.payables = list()
+        self.payables_value = 0
         
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
@@ -82,6 +90,7 @@ class Agent(Parameters):
         self.time_of_next_allowed_financing = 0
         self.bankruptcy = False
         self.credit_availability = False
+        self.in_default = False
         self.log_liability = list()
         self.__check_role()
         self.__assign_role_specific_attributes()

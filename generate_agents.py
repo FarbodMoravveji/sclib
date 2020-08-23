@@ -62,5 +62,7 @@ class GenAgents:
                       self.df["financing_period"].at[i],
                       self.df["ordering_period"].at[i],
                       self.df["delivery_period"].at[i],
-                      self.df["fixed_assets"].at[i])
+                      self.df["fixed_assets"].at[i],
+                      self.df["payment_term"].at[i],
+                      self.df["tc_rate"].at[i])
             self.list_agents.append(x)

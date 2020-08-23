@@ -25,7 +25,7 @@ class Recorder:
 
         self._log_working_capital = self.__create_log_wcap_df()
         self._log_financing = self.__dummy_log_financing()
-        self._log_default_probability = self.__dummy_log_default()
+        self._log_dp = self.__dummy_log_default()
         # self._log_orders = self.__create_log_orders_df()
         # self._log_delivery = self.__create_log_delivery_df()
 
@@ -52,8 +52,8 @@ class Recorder:
         return self._log_financing
 
     @property
-    def log_default_probability(self) -> DataFrame:
-        return self._log_default_probability
+    def log_dp(self) -> DataFrame:
+        return self._log_dp
 
     @property
     def log_orders(self) -> DataFrame:
@@ -206,8 +206,8 @@ class Recorder:
             aid = agent.agent_id
             for (amount, step) in agent.default_probability_history:
                 matrix[aid][step - 301] = amount
-        log_default_probability = pd.DataFrame(matrix, columns = v)
-        self._log_default_probability = log_default_probability
+        log_dp = pd.DataFrame(matrix, columns = v)
+        self._log_dp = log_dp
 
     # def update_log_orders(self) -> None:
     #     """

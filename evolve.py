@@ -141,25 +141,50 @@ class Evolve(Recorder):
             agent.default_probability = self.N(-agent.distance_to_default)
             agent.default_probability_history.append((agent.default_probability, self.current_step))
 
-    def calculate_inventory_values(self):
+    def check_receivables_and_payables(self):
+        for sup in self.model.sup_list:
+            if sup.receivables:
+                for tup in sup.receivables:                                    # sup.receivables is a list of tuples in the form [(val, due_date, ds_id)]
+                    if tup[1] == self.current_step:
+                        man = self.model.find_agent_by_id(tup[2])
+                        sup.working_capital += tup[0]
+                        man.working_capital -= tup[0]
+                        
+                
+
+    def calculate_inventory_receivable_payable_values(self):
         """
         This method calculates inventory value at the current step
         """
         for agent in self.model.list_agents:
-            if not agent.inventory_track:
+            if not agent.inventory_track:                                      # Calculating inventory value
                 agent.inventory_value = 0
             else:
                 cur_inv = 0
                 for (val,due_date) in agent.inventory_track:
                     cur_inv += val
-                    if due_date < self.current_step:
-                        raise Exception(f'old inventories are not correctly deleted from inventory_track')
                 agent.inventory_value = cur_inv
+
+            if not agent.receivables:                                          # Calculating receivables value
+                agent.receivables_value = 0
+            else:
+                cur_rec = 0
+                for (val, due_date) in agent.receivables:
+                    cur_rec += val
+                agent.receivables_value = cur_rec
+                
+            if not agent.payables:                                             # Calculating payables value
+                agent.payables_value = 0
+            else:
+                cur_pay = 0
+                for (val, due_date) in agent.payables:
+                    cur_pay += val
+                agent.payables_value = cur_pay
 
     def update_total_assets_and_liabilities_and_equity(self):
         for agent in self.model.list_agents:
-            agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value
-            agent.total_liabilities = agent.liability
+            agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value + agent.receivables_value
+            agent.total_liabilities = agent.liability + agent.payables_value
             agent.equity = agent.total_assets - agent.total_liabilities
             agent.list_equity.append(agent.equity)
             if self.current_step > 300:
@@ -349,15 +374,18 @@ class Evolve(Recorder):
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
                     step_income = supplier.selling_price * amount            #Calculating profit using a fixed margin for suppliers
-                    supplier.working_capital += step_income
+                    compounded_for_tc = step_income * (1 + (supplier.tc_rate / 365))**supplier.payment_term   #Calculates the payment value under trade credit,
+                    supplier.receivables.append((compounded_for_tc, self.current_step + supplier.payment_term, manufacturer_agent_id))# Addine TC to receivables.
+                    manufacturer.payables.append((compounded_for_tc, self.current_step + supplier.payment_term, supplier_agent_id))# Adding TC to payables.
+                    # supplier.working_capital += step_income
                     for tup in supplier.inventory_track:
-                        if tup[1] == self.current_step:
+                        if tup[1] <= self.current_step:
                             supplier.inventory_track.remove(tup)
 
-                    price_to_pay = step_income
-                    manufacturer.working_capital -= price_to_pay
+                    price_to_pay = compounded_for_tc
+                    # manufacturer.working_capital -= price_to_pay
                     manufacturer.inventory_track.append((price_to_pay, self.current_step + manufacturer.production_time))
-                    
+
                     for index, item in enumerate(order.manufacturers_num_partners):
                         itemlist = list(item)
                         if itemlist[0] == manufacturer_agent_id:
@@ -398,14 +426,17 @@ class Evolve(Recorder):
                         retailer = self.model.find_agent_by_id(order.retailer_agent_id)
                         manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
-                        step_income = (manufacturer.selling_price * amount)        #Calculating profit using a fixed margin for suppliers
-                        manufacturer.working_capital += step_income
+                        step_income = (manufacturer.selling_price * amount)
+                        compounded_for_tc = step_income * (1 + (manufacturer.tc_rate / 365))**manufacturer.payment_term
+                        manufacturer.receivables.append((compounded_for_tc, self.current_step + manufacturer.payment_term, retailer.agent_id))
+                        retailer.payables.append((compounded_for_tc, self.current_step + manufacturer.payment_term, manufacturer_agent_id))
+                        # manufacturer.working_capital += step_income
                         for tup in manufacturer.inventory_track:
-                            if tup[1] == self.current_step:
+                            if tup[1] <= self.current_step:
                                 manufacturer.inventory_track.remove(tup)
                         
-                        price_to_pay = step_income
-                        retailer.working_capital -= price_to_pay
+                        price_to_pay = compounded_for_tc
+                        # retailer.working_capital -= price_to_pay
                         retailer.inventory_track.append((price_to_pay, self.current_step + retailer.production_time))
 
                         order.amount_delivered_to_retailer += amount
@@ -439,9 +470,11 @@ class Evolve(Recorder):
         for order in delivery_by_retailer:
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
-            retailer.working_capital += step_income
+            compounded_for_tc = step_income * (1 + (retailer.tc_rate / 365))**retailer.payment_term
+            retailer.receivables.append((compounded_for_tc, self.current_step + retailer.payment_term))
+            # retailer.working_capital += step_income
             for tup in retailer.inventory_track:
-                if tup[1] == self.current_step:
+                if tup[1] <= self.current_step:
                     retailer.inventory_track.remove(tup)
             order.order_completed = True
 
@@ -466,6 +499,7 @@ class Evolve(Recorder):
                     if due_date == self.current_step:
                         if agent.working_capital < amount:
                             print(f'**default situation for agent {agent.agent_id} at step {self.current_step}')
+                            agent.in_default = True
                         agent.working_capital -= amount
                         agent.liability -= amount            
 
@@ -490,11 +524,12 @@ class Evolve(Recorder):
                 self.current_step += 1
                 print(f'at step: {self.current_step}')
 
-                self.calculate_inventory_values()
+                self.check_receivables_and_payables()
+                self.calculate_inventory_receivable_payable_values()
                 self.update_total_assets_and_liabilities_and_equity()
                 self.calculate_duration_of_obligations()
-                if self.current_step > 300:
-                    self.credit_calculations()
+                # if self.current_step > 300:
+                #     self.credit_calculations()
 
                 if self._wcap_financing:
                     self.repay_debt()
