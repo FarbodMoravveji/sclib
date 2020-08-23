@@ -145,12 +145,37 @@ class Evolve(Recorder):
         for sup in self.model.sup_list:
             if sup.receivables:
                 for tup in sup.receivables:                                    # sup.receivables is a list of tuples in the form [(val, due_date, ds_id)]
-                    if tup[1] == self.current_step:
-                        man = self.model.find_agent_by_id(tup[2])
+                    man = self.model.find_agent_by_id(tup[2])
+                    if tup[1] <= self.current_step and not man.in_default:
                         sup.working_capital += tup[0]
+                        sup.receivables.remove(tup)
+
+        for man in self.model.man_list:
+            if man.receivables:
+                for tup in man.receivables:                                    # man.receivables is a list of tuples in the form [(val, due_date, ds_id)]
+                    ret = self.model.find_agent_by_id(tup[2])
+                    if tup[1] <= self.current_step and not ret.in_default:
+                        man.working_capital += tup[0]
+                        man.receivables.remove(tup)
+
+            if man.payables:
+                for tup in man.payables:                                       # man.payables is a list of tuples in the form [(val, due_date, us_id)]
+                    if tup[1] <= self.current_step and not man.in_default:
                         man.working_capital -= tup[0]
-                        
-                
+                        man.payables.remove(tup)
+
+        for ret in self.model.ret_list:
+            if ret.receivables:
+                for tup in ret.receivables:
+                    if tup[1] <= self.current_step:
+                        ret.working_capital += tup[0]
+                        ret.receivables.remove(tup)
+
+            if ret.payables:
+                for tup in ret.payables:
+                    if tup[1] <= self.current_step and not ret.in_default:
+                        ret.working_capital -= tup[0]
+                        ret.payables.remove(tup)
 
     def calculate_inventory_receivable_payable_values(self):
         """
