@@ -24,13 +24,15 @@ class Recorder:
         self._n_agents = len(list_agents)
 
         self._log_working_capital = self.__create_log_wcap_df()
-        self._log_orders = self.__create_log_orders_df()
-        self._log_delivery = self.__create_log_delivery_df()
+        self._log_financing = self.__dummy_log_financing()
+        self._log_default_probability = self.__dummy_log_default()
+        # self._log_orders = self.__create_log_orders_df()
+        # self._log_delivery = self.__create_log_delivery_df()
 
         self._initial_list_agents = self._list_agents
         self._initial_log_working_capital = self._log_working_capital
-        self._initial_log_orders = self._log_orders
-        self._initial_log_delivery = self._log_delivery
+        # self._initial_log_orders = self._log_orders
+        # self._initial_log_delivery = self._log_delivery
         # self.__remember_initial_state()
 
     @property
@@ -44,6 +46,14 @@ class Recorder:
     @property
     def log_working_capital(self) -> DataFrame:
         return self._log_working_capital
+    
+    @property
+    def log_financing(self) -> DataFrame:
+        return self._log_financing
+
+    @property
+    def log_default_probability(self) -> DataFrame:
+        return self._log_default_probability
 
     @property
     def log_orders(self) -> DataFrame:
@@ -85,32 +95,54 @@ class Recorder:
         
         log_working_capital = pd.DataFrame(wcv, columns =['step_0'])          
         return log_working_capital
+    
+    def __dummy_log_financing(self) -> DataFrame:
+        """
+        this method creates a temporary dataframe which will be replaced after model
+        run is completed.
+        *The method log_financing should be called in the main script before
+        visualizing self.log_financing.
+        """
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
 
-    def __create_log_orders_df(self) -> DataFrame:
+    def __dummy_log_default(self) -> DataFrame:
         """
-        This method creates a dataframe which contains initial order values that 
-        are equal to zero.
-        
-        Returns:
-            A pandas DataFrame consisted of only one column which holds zeros
-            as initial order amounts related to each agent.
+        this method creates a temporary dataframe which will be replaced after model
+        run is completed.
+        *The method log_default_probability should be called in the main script before
+        visualizing self.log_default_probability.
         """
-        wcv = np.zeros(self.n_agents)                                          
-        log_orders = pd.DataFrame(wcv, columns =['step_0'])          
-        return log_orders
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
 
-    def __create_log_delivery_df(self) -> DataFrame:
-        """
-        This method creates a dataframe which contains initial deliveries that 
-        are equal to zero.
+    # def __create_log_orders_df(self) -> DataFrame:
+    #     """
+    #     This method creates a dataframe which contains initial order values that 
+    #     are equal to zero.
         
-        Returns:
-            A pandas DataFrame consisted of only one column which holds zeros
-            as initial delivery amounts related to each agent.
-        """
-        wcv = np.zeros(self.n_agents)                                          
-        log_delivery = pd.DataFrame(wcv, columns =['step_0'])          
-        return log_delivery
+    #     Returns:
+    #         A pandas DataFrame consisted of only one column which holds zeros
+    #         as initial order amounts related to each agent.
+    #     """
+    #     wcv = np.zeros(self.n_agents)                                          
+    #     log_orders = pd.DataFrame(wcv, columns =['step_0'])          
+    #     return log_orders
+
+    # def __create_log_delivery_df(self) -> DataFrame:
+    #     """
+    #     This method creates a dataframe which contains initial deliveries that 
+    #     are equal to zero.
+        
+    #     Returns:
+    #         A pandas DataFrame consisted of only one column which holds zeros
+    #         as initial delivery amounts related to each agent.
+    #     """
+    #     wcv = np.zeros(self.n_agents)                                          
+    #     log_delivery = pd.DataFrame(wcv, columns =['step_0'])          
+    #     return log_delivery
 
     def __remember_initial_state(self) -> None:
         """
@@ -146,6 +178,36 @@ class Recorder:
             wcv[i] = elem.working_capital     
 
         self.log_working_capital[f'step_{self.current_step}'] = wcv
+
+    def log_short_term_financing(self, proceed_steps) -> None:
+        """
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+        This method creates a DataFrame with financing amounts. 
+        """
+        v = [f'step_{i}' for i in range(1, proceed_steps + 1)]
+        matrix = np.zeros([self.n_agents, proceed_steps])
+        for agent in self.list_agents:
+            aid = agent.agent_id
+            for (amount, step, _) in agent.financing_history:
+                matrix[aid][step - 1] = amount
+        log_financing = pd.DataFrame(matrix, columns = v)
+        self._log_financing = log_financing
+
+    def log_default_probability(self, proceed_steps) -> None:
+        """
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+        This method creates a DataFrame with financing amounts. 
+        """
+        v = [f'step_{i}' for i in range(301, proceed_steps + 1)]
+        matrix = np.zeros([self.n_agents, proceed_steps - 300])
+        for agent in self.list_agents:
+            aid = agent.agent_id
+            for (amount, step) in agent.default_probability_history:
+                matrix[aid][step - 301] = amount
+        log_default_probability = pd.DataFrame(matrix, columns = v)
+        self._log_default_probability = log_default_probability
 
     # def update_log_orders(self) -> None:
     #     """

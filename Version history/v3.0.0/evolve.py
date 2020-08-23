@@ -1,9 +1,6 @@
 from random import shuffle
 from operator import itemgetter
 from collections import Counter
-from statistics import mean
-from statistics import stdev
-import scipy.stats as stats
 import numpy as np
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
@@ -104,88 +101,6 @@ class Evolve(Recorder):
         if self._wcap_financing:
             self._wcap_financing = False
 
-    def N(self, x):
-        return stats.norm.cdf(x)
-
-    def calculate_assets_and_sigma_assets(self, E, D, T, r, sigmaE):
-        """
-        This method estimates assets market value and its standard deviation by
-        simulating KMV formulations.
-        """
-        n=10000
-        m=2000
-        diffOld=1e6 # a very big number
-        for i in np.arange(1,10):
-            for j in np.arange(1,m):
-                A=E+D/2+i*D/n
-                sigmaA=0.05+j*(1.0-0.001)/m
-                d1 = (np.log(A/D)+(r+sigmaA*sigmaA/2.)*T)/(sigmaA*np.sqrt(T))
-                d2 = d1-sigmaA*np.sqrt(T)
-                diff4A= (A*self.N(d1)-D*np.exp(-r*T)*self.N(d2)-E)/A # scale by assets
-                diff4sigmaE= A/E*self.N(d1)*sigmaA-sigmaE # a small number
-                diffNew=abs(diff4A)+abs(diff4sigmaE)
-                if diffNew<diffOld:
-                    diffOld=diffNew
-                    output=(round(A,2),round(sigmaA,4),round(diffNew,5))
-        return output
-
-    def credit_calculations(self):
-        """
-        This method calculates agent's distance to default and default probability
-        using the calculate_assets_and_sigma_assets method to estimate market value
-        of assets and sigma assets.
-        """
-        for agent in self.model.list_agents:
-            assets, sigma_assets, _ = self.calculate_assets_and_sigma_assets(agent.equity, agent.total_liabilities + 1, agent.duration_of_obligations, agent.financing_rate, agent.sigma_equity)
-            agent.distance_to_default = (assets - agent.total_liabilities) / (assets * sigma_assets)
-            agent.default_probability = self.N(-agent.distance_to_default)
-            agent.default_probability_history.append((agent.default_probability, self.current_step))
-
-    def calculate_inventory_values(self):
-        """
-        This method calculates inventory value at the current step
-        """
-        for agent in self.model.list_agents:
-            if not agent.inventory_track:
-                agent.inventory_value = 0
-            else:
-                cur_inv = 0
-                for (val,due_date) in agent.inventory_track:
-                    cur_inv += val
-                    if due_date < self.current_step:
-                        raise Exception(f'old inventories are not correctly deleted from inventory_track')
-                agent.inventory_value = cur_inv
-
-    def update_total_assets_and_liabilities_and_equity(self):
-        for agent in self.model.list_agents:
-            agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value
-            agent.total_liabilities = agent.liability
-            agent.equity = agent.total_assets - agent.total_liabilities
-            agent.list_equity.append(agent.equity)
-            if self.current_step > 300:
-                agent.sigma_equity = stdev(agent.list_equity)
-
-    def calculate_duration_of_obligations(self):
-        """
-        Calculates the duration of all remaining loan obligations to be used as
-        T in KMV formulation.
-        """
-        for agent in self.model.list_agents:
-            l = list()
-            if agent.financing_history:
-                for (amount, _, due_date) in agent.financing_history:
-                    if due_date > self.current_step:
-                        l.append((amount, due_date - self.current_step))
-                present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
-                pv_of_total_obligations = sum(i for i, _ in present_value)
-                if pv_of_total_obligations != 0:
-                    timed_obligations = sum(i * j for i, j in present_value)
-                    agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
-                else:
-                    agent.duration_of_obligations = 1
-            else:
-                agent.duration_of_obligations = 1
-
     def check_credit_availability(self):
         """
         This method takes into account the time gaps between financing and credit capacity 
@@ -194,16 +109,6 @@ class Evolve(Recorder):
         for agent in self.model.list_agents:
             if self.current_step >= agent.time_of_next_allowed_financing and agent.liability < agent.total_credit_capacity:
                 agent.credit_availability = True
-                if self.current_step > 20:
-                    members = agent.days_between_financing
-                    roww = agent.agent_id
-                    df = self.log_working_capital
-                    col = list(df.columns)
-                    mycol = col[-members:]
-                    intlist = list()
-                    for columnn in mycol:
-                        intlist.append(df.iloc[roww][columnn])
-                    agent.total_credit_capacity = mean(intlist)
                 agent.current_credit_capacity = agent.total_credit_capacity - agent.liability
             else:
                 agent.credit_availability = False
@@ -216,9 +121,9 @@ class Evolve(Recorder):
     def determine_capacity(self):
         for agent in self.model.list_agents:
             if self._wcap_financing and agent.credit_availability:
-                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)))
+                agent.prod_cap = agent.q * (agent.working_capital + agent.current_credit_capacity * (1 + (agent.financing_rate / 365) ** (1 / (agent.financing_period))))
             else:
-                agent.prod_cap = max(0, agent.q * agent.working_capital)
+                agent.prod_cap = agent.q * agent.working_capital
 
     def receive_order_by_retailers(self):
         for ret in self.model.ret_list:
@@ -246,7 +151,7 @@ class Evolve(Recorder):
             
             if retailer.orders_succeeded:
                 retailer.orders_succeeded = 0
-
+            
             elig = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.model.man_list if agent.prod_cap > 0 and agent.selling_price < retailer.selling_price]
             
             if not elig:
@@ -272,7 +177,7 @@ class Evolve(Recorder):
         orders_to_go_up = [order for order in self.list_orders if 
                            order.completed_ordering_to_manufacturers == True 
                            and order.completed_ordering_to_suppliers == False]
-
+        
         if self._do_shuffle:
             shuffle(orders_to_go_up)                                             # Creates Competetion within stage.
 
@@ -303,15 +208,6 @@ class Evolve(Recorder):
                     order.suppliers.append((agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
                     manufacturer.orders_succeeded += amount
                     remaining_order_amount -= amount
-                    price_to_pay = (1 - supplier.input_margin) * amount
-                    
-                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
-                        excess_order = amount - (supplier.q * supplier.working_capital)
-                        loan_amount = excess_order / supplier.q
-                        self.short_term_financing(supplier.agent_id, loan_amount)
-                    
-                    supplier.working_capital -= price_to_pay
-                    supplier.inventory_track.append((price_to_pay, self.current_step + supplier.production_time)) #When the agent pays for raw material, it is stored in inventory_track as the tuple (value,due_date)
 
                 order.completed_ordering_to_suppliers = True
 
@@ -348,15 +244,14 @@ class Evolve(Recorder):
                     supplier = self.model.find_agent_by_id(supplier_agent_id)
                     manufacturer = self.model.find_agent_by_id(manufacturer_agent_id)
 
-                    step_income = supplier.selling_price * amount            #Calculating profit using a fixed margin for suppliers
+                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
+                        excess_order = amount - (supplier.q * supplier.working_capital)
+                        loan_amount = excess_order / supplier.q
+                        self.short_term_financing(supplier_agent_id, loan_amount)
+                    
+                    step_income = (supplier.selling_price * amount) - (1 - supplier.input_margin) * amount       #Calculating profit using a fixed margin for suppliers
                     supplier.working_capital += step_income
-                    for tup in supplier.inventory_track:
-                        if tup[1] == self.current_step:
-                            supplier.inventory_track.remove(tup)
-
-                    price_to_pay = step_income
-                    manufacturer.working_capital -= price_to_pay
-                    manufacturer.inventory_track.append((price_to_pay, self.current_step + manufacturer.production_time))
+                    manufacturer.working_capital -= supplier.selling_price * amount
                     
                     for index, item in enumerate(order.manufacturers_num_partners):
                         itemlist = list(item)
@@ -400,14 +295,7 @@ class Evolve(Recorder):
 
                         step_income = (manufacturer.selling_price * amount)        #Calculating profit using a fixed margin for suppliers
                         manufacturer.working_capital += step_income
-                        for tup in manufacturer.inventory_track:
-                            if tup[1] == self.current_step:
-                                manufacturer.inventory_track.remove(tup)
-                        
-                        price_to_pay = step_income
-                        retailer.working_capital -= price_to_pay
-                        retailer.inventory_track.append((price_to_pay, self.current_step + retailer.production_time))
-
+                        retailer.working_capital -= step_income
                         order.amount_delivered_to_retailer += amount
 
                         for index, item in enumerate(order.manufacturer_delivery_plan):
@@ -440,9 +328,6 @@ class Evolve(Recorder):
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
             retailer.working_capital += step_income
-            for tup in retailer.inventory_track:
-                if tup[1] == self.current_step:
-                    retailer.inventory_track.remove(tup)
             order.order_completed = True
 
     def short_term_financing(self, agent_id, amount) -> None:
@@ -451,10 +336,9 @@ class Evolve(Recorder):
         """
         agent = self.model.find_agent_by_id(agent_id)
         agent.working_capital += amount
-        compounded_value = (amount) * ((1 + (agent.financing_rate / 365)) ** (agent.financing_period))
-        agent.liability += compounded_value
+        agent.liability += amount * (1 + (agent.financing_rate / 365) ** (agent.financing_period))
         agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
-        agent.financing_history.append((compounded_value, self.current_step, self.current_step + agent.financing_period))
+        agent.financing_history.append((amount * (1 + (agent.financing_rate / 365)) ** (agent.financing_period), self.current_step + agent.financing_period))
 
     def repay_debt(self) -> None:
         """
@@ -462,24 +346,10 @@ class Evolve(Recorder):
         """
         for agent in self._model.list_agents:
             if agent.financing_history:
-                for (amount, _, due_date) in agent.financing_history:
+                for (amount, due_date) in agent.financing_history:
                     if due_date == self.current_step:
-                        if agent.working_capital < amount:
-                            print(f'**default situation for agent {agent.agent_id} at step {self.current_step}')
                         agent.working_capital -= amount
                         agent.liability -= amount            
-
-    def check_for_bankruptcy(self):
-        for agent in self.model.list_agents:
-            if not agent.bankruptcy and agent.liability > agent.working_capital:
-                print(f'agent {agent.agent_id} went bankrupt in step {self.current_step} with liability = {agent.liability} and working_capital = {agent.working_capital}')
-                agent.bankruptcy = True
-
-    def check_for_bankruptcy_recovery(self):
-        for agent in self.model.list_agents:
-            if agent.bankruptcy and agent.liability < agent.working_capital:
-                print(f'agent {agent.agent_id} recovered from bankruptcy in step {self.current_step} with liability = {agent.liability} and working_capital = {agent.working_capital}')
-                agent.bankruptcy = False
 
     def proceed(self, steps: int) -> None:
         """
@@ -488,13 +358,6 @@ class Evolve(Recorder):
         for _ in range(steps):
             try:
                 self.current_step += 1
-                print(f'at step: {self.current_step}')
-
-                self.calculate_inventory_values()
-                self.update_total_assets_and_liabilities_and_equity()
-                self.calculate_duration_of_obligations()
-                if self.current_step > 300:
-                    self.credit_calculations()
 
                 if self._wcap_financing:
                     self.repay_debt()
@@ -513,10 +376,6 @@ class Evolve(Recorder):
                 self.deliver_to_retailer()
                 self.plan_delivery_by_retailer()
                 self.retailer_delivery()
-
-                if self._wcap_financing:
-                    self.check_for_bankruptcy()
-                    self.check_for_bankruptcy_recovery()
 
                 self.update_log_wcap()
                 # self.update_log_orders()

@@ -28,8 +28,7 @@ class Agent(Parameters):
                  days_between_financing: int = 30,
                  financing_period: int = 90,
                  ordering_period: int = 0,
-                 delivery_period: int = 2,
-                 fixed_assets: float = 2000):
+                 delivery_period: int = 2):
         """
         constructor
          Inputs:
@@ -57,32 +56,18 @@ class Agent(Parameters):
         self.interest_rate = interest_rate
         self.ordering_period = ordering_period
         self.production_time = delivery_period
-        self.fixed_assets = fixed_assets
+
+        ##Financing attributes:
         self.days_between_financing = days_between_financing
         self.financing_period = financing_period
-        self.inventory_value = 0
-        self.inventory_track = list()
-        self.total_assets = 0
-        self.total_liabilities = 0
-        self.equity = 0
-        self.list_equity = list()
-        self.sigma_equity = 0
-        self.estimated_assets = 0
-        self.estimated_sigma_assets = 0
-        self.duration_of_obligations = 0
-        self.distance_to_default = 0
-        self.default_probability = 0
-        self.default_probability_history = list()
-        
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
         self.current_credit_capacity = 0.0
         self.liability = 0.0
+        self.credit_availability = False
         self.financing_history = list()
         self.time_of_next_allowed_financing = 0
-        self.bankruptcy = False
-        self.credit_availability = False
-        self.log_liability = list()
+
         self.__check_role()
         self.__assign_role_specific_attributes()
 

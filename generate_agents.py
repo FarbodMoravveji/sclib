@@ -61,5 +61,6 @@ class GenAgents:
                       self.df["days_between_financing"].at[i],
                       self.df["financing_period"].at[i],
                       self.df["ordering_period"].at[i],
-                      self.df["delivery_period"].at[i])
+                      self.df["delivery_period"].at[i],
+                      self.df["fixed_assets"].at[i])
             self.list_agents.append(x)
