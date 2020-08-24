@@ -194,7 +194,7 @@ class Evolve(Recorder):
                 agent.receivables_value = 0
             else:
                 cur_rec = 0
-                for (val, due_date) in agent.receivables:
+                for (val, due_date, _) in agent.receivables:
                     cur_rec += val
                 agent.receivables_value = cur_rec
                 
@@ -202,7 +202,7 @@ class Evolve(Recorder):
                 agent.payables_value = 0
             else:
                 cur_pay = 0
-                for (val, due_date) in agent.payables:
+                for (val, due_date, _) in agent.payables:
                     cur_pay += val
                 agent.payables_value = cur_pay
 
@@ -496,7 +496,7 @@ class Evolve(Recorder):
             retailer = self.model.find_agent_by_id(order.retailer_agent_id)
             step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
             compounded_for_tc = step_income * (1 + (retailer.tc_rate / 365))**retailer.payment_term
-            retailer.receivables.append((compounded_for_tc, self.current_step + retailer.payment_term))
+            retailer.receivables.append((compounded_for_tc, self.current_step + retailer.payment_term, 'outside'))
             # retailer.working_capital += step_income
             for tup in retailer.inventory_track:
                 if tup[1] <= self.current_step:
