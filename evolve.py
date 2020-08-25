@@ -209,11 +209,13 @@ class Evolve(Recorder):
     def update_total_assets_and_liabilities_and_equity(self):
         for agent in self.model.list_agents:
             agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value + agent.receivables_value
-            agent.total_liabilities = agent.liability + agent.payables_value
+            agent.list_assets.append(agent.total_assets)
+            agent.total_liabilities = agent.liability + agent.payables_value + agent.long_term_debt
             agent.equity = agent.total_assets - agent.total_liabilities
             agent.list_equity.append(agent.equity)
             if self.current_step > 300:
                 agent.sigma_equity = stdev(agent.list_equity)
+                agent.sigma_assets = np.std(agent.list_assets)
 
     def calculate_duration_of_obligations(self):
         """
