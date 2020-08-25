@@ -31,7 +31,8 @@ class Agent(Parameters):
                  delivery_period: int = 2,
                  fixed_assets: float = 2000,
                  payment_term: int = 10,
-                 tc_rate = 0.1):
+                 tc_rate: float = 0.1,
+                 long_term_debt: float = 100):
         """
         constructor
          Inputs:
@@ -77,6 +78,7 @@ class Agent(Parameters):
         self.default_probability_history = list()
         self.payment_term = payment_term
         self.tc_rate = tc_rate
+        self.long_term_debt = long_term_debt
         self.receivables = list()
         self.receivables_value = 0
         self.payables = list()
