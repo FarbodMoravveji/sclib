@@ -107,27 +107,27 @@ class Evolve(Recorder):
     def N(self, x):
         return stats.norm.cdf(x)
 
-    def calculate_assets_and_sigma_assets(self, E, D, T, r, sigmaE):
-        """
-        This method estimates assets market value and its standard deviation by
-        simulating KMV formulations.
-        """
-        n=10000
-        m=2000
-        diffOld=1e6 # a very big number
-        for i in np.arange(1,10):
-            for j in np.arange(1,m):
-                A=E+D/2+i*D/n
-                sigmaA=0.05+j*(1.0-0.001)/m
-                d1 = (np.log(A/D)+(r+sigmaA*sigmaA/2.)*T)/(sigmaA*np.sqrt(T))
-                d2 = d1-sigmaA*np.sqrt(T)
-                diff4A= (A*self.N(d1)-D*np.exp(-r*T)*self.N(d2)-E)/A # scale by assets
-                diff4sigmaE= A/E*self.N(d1)*sigmaA-sigmaE # a small number
-                diffNew=abs(diff4A)+abs(diff4sigmaE)
-                if diffNew<diffOld:
-                    diffOld=diffNew
-                    output=(round(A,2),round(sigmaA,4),round(diffNew,5))
-        return output
+    # def calculate_assets_and_sigma_assets(self, E, D, T, r, sigmaE):
+    #     """
+    #     This method estimates assets market value and its standard deviation by
+    #     simulating KMV formulations.
+    #     """
+    #     n=10000
+    #     m=2000
+    #     diffOld=1e6 # a very big number
+    #     for i in np.arange(1,10):
+    #         for j in np.arange(1,m):
+    #             A=E+D/2+i*D/n
+    #             sigmaA=0.05+j*(1.0-0.001)/m
+    #             d1 = (np.log(A/D)+(r+sigmaA*sigmaA/2.)*T)/(sigmaA*np.sqrt(T))
+    #             d2 = d1-sigmaA*np.sqrt(T)
+    #             diff4A= (A*self.N(d1)-D*np.exp(-r*T)*self.N(d2)-E)/A # scale by assets
+    #             diff4sigmaE= A/E*self.N(d1)*sigmaA-sigmaE # a small number
+    #             diffNew=abs(diff4A)+abs(diff4sigmaE)
+    #             if diffNew<diffOld:
+    #                 diffOld=diffNew
+    #                 output=(round(A,2),round(sigmaA,4),round(diffNew,5))
+    #     return output
 
     def credit_calculations(self):
         """
@@ -136,8 +136,8 @@ class Evolve(Recorder):
         of assets and sigma assets.
         """
         for agent in self.model.list_agents:
-            assets, sigma_assets, _ = self.calculate_assets_and_sigma_assets(agent.equity, agent.total_liabilities + 1, agent.duration_of_obligations, agent.financing_rate, agent.sigma_equity)
-            agent.distance_to_default = (assets - agent.total_liabilities) / (assets * sigma_assets)
+            # assets, sigma_assets, _ = self.calculate_assets_and_sigma_assets(agent.equity, agent.total_liabilities + 1, agent.duration_of_obligations, agent.financing_rate / 365, agent.sigma_equity)
+            agent.distance_to_default = (agent.total_assets - agent.total_liabilities) / (agent.total_assets * agent.sigma_assets)
             agent.default_probability = self.N(-agent.distance_to_default)
             agent.default_probability_history.append((agent.default_probability, self.current_step))
 
@@ -555,8 +555,8 @@ class Evolve(Recorder):
                 self.calculate_inventory_receivable_payable_values()
                 self.update_total_assets_and_liabilities_and_equity()
                 self.calculate_duration_of_obligations()
-                # if self.current_step > 300:
-                #     self.credit_calculations()
+                if self.current_step > 300:
+                    self.credit_calculations()
 
                 if self._wcap_financing:
                     self.repay_debt()
