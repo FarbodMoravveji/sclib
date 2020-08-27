@@ -14,36 +14,34 @@ class Agents:
     man_list: List[Agent]
     sup_list: List[Agent]
 
-    def __init__(self, _list_agents) -> None:
+    def __init__(self, list_agents) -> None:
         """
         constructor
          Input:
-            _list_agents: A list containing Agent objects. This list can be
+            list_agents: A list containing Agent objects. This list can be
                           constructed manually or it can be extracted from a 
                           GenAgents object as is shown below:
                               
                               list_of_agents = GenAgents(excel_file).list_agents
         """
-        self._list_agents = _list_agents
+        self.list_agents = list_agents
         self.__break_list()
         self.__check_duplicate_id()
         self.__layers_fulfilled()
 
-    @property
-    def list_agents(self):
-        return self._list_agents
+
 
     def __break_list(self) -> None:
         """
         Creates lists of retailers, manufacturers and suppliers. 
         """
-        self.ret_list = [agent for agent in self._list_agents if 
+        self.ret_list = [agent for agent in self.list_agents if 
                           agent.role == agent.retailer]                        # Filters list_agents for retailers who should order.
         
-        self.man_list = [agent for agent in self._list_agents if 
+        self.man_list = [agent for agent in self.list_agents if 
                          agent.role == agent.manufacturer]                     # Filters list_agents for manufacturers.
         
-        self.sup_list = [agent for agent in self._list_agents if 
+        self.sup_list = [agent for agent in self.list_agents if 
                          agent.role == agent.supplier]                         # Filters list_agents for suppliers.
 
     def __check_duplicate_id(self) -> None:
@@ -51,7 +49,7 @@ class Agents:
         Checks if list_agents contain any duplicate agent_ids.
         """
         agents_set = set()
-        ids = [agent.agent_id for agent in self._list_agents]
+        ids = [agent.agent_id for agent in self.list_agents]
         for elem in ids:
             if elem in agents_set:
                 raise ValueError(f'__check_duplicate_id: Agents.list_agents contains at least one duplicate id')
@@ -63,7 +61,7 @@ class Agents:
         This method makes sure that there is at least one agent in each layer        
         """
         role_set = set()
-        for elem in self._list_agents:
+        for elem in self.list_agents:
             role_set.add(elem.role)
         if len(role_set) < 3:
             raise ValueError(f"__layers_fulfilled: At least one layer doesn't contain any agents")
@@ -86,9 +84,9 @@ class Agents:
             An Agent() object with the agent_id that is identical to the uniqu_id
             provided as the argument of the method.
         """
-        return [agent for agent in self._list_agents if unique_id == agent.agent_id][0]
+        return [agent for agent in self.list_agents if unique_id == agent.agent_id][0]
 
     def realize_selling_prices(self):
-        for agent in self._list_agents:
+        for agent in self.list_agents:
             step_selling_price = np.random.lognormal(mean = log(agent.mu_selling_price), sigma = agent.sigma_selling_price)
             agent.selling_price = step_selling_price
