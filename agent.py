@@ -29,7 +29,10 @@ class Agent(Parameters):
                  financing_period: int = 90,
                  ordering_period: int = 0,
                  delivery_period: int = 2,
-                 fixed_assets: float = 2000):
+                 fixed_assets: float = 2000,
+                 payment_term: int = 10,
+                 tc_rate: float = 0.1,
+                 long_term_debt: float = 100):
         """
         constructor
          Inputs:
@@ -60,28 +63,39 @@ class Agent(Parameters):
         self.fixed_assets = fixed_assets
         self.days_between_financing = days_between_financing
         self.financing_period = financing_period
-        self.inventory_value = 0
+        self.list_working_capital = list()
+        self.inventory_value = 0.0
         self.inventory_track = list()
-        self.total_assets = 0
-        self.total_liabilities = 0
-        self.equity = 0
+        self.total_assets = 0.0
+        self.list_assets = list()
+        self.sigma_assets = 0.0
+        self.total_liabilities = 0.0
+        self.equity = 0.0
         self.list_equity = list()
-        self.sigma_equity = 0
-        self.estimated_assets = 0
-        self.estimated_sigma_assets = 0
-        self.duration_of_obligations = 0
-        self.distance_to_default = 0
-        self.default_probability = 0
+        self.sigma_equity = 0.0
+        self.estimated_assets = 0.0
+        self.estimated_sigma_assets = 0.0
+        self.duration_of_obligations = 0.0
+        self.distance_to_default = 0.0
+        self.default_probability = 0.0
         self.default_probability_history = list()
+        self.payment_term = payment_term
+        self.tc_rate = tc_rate
+        self.long_term_debt = long_term_debt
+        self.receivables = list()
+        self.receivables_value = 0.0
+        self.payables = list()
+        self.payables_value = 0.0
         
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
         self.current_credit_capacity = 0.0
         self.liability = 0.0
         self.financing_history = list()
-        self.time_of_next_allowed_financing = 0
-        self.bankruptcy = False
+        self.time_of_next_allowed_financing = 0.0
         self.credit_availability = False
+        self.in_default = False
+        self.bankruptcy = False
         self.log_liability = list()
         self.__check_role()
         self.__assign_role_specific_attributes()

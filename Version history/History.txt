@@ -4,7 +4,11 @@ Base model(deterministic selling price, normal demand, no fixed cost, no financi
 v1.2.1:
 Base model(log-normal selling price, exponential demand, deterministic fixed cost, no financing)
 
-v2.0.0
+v2.0.0:
 Base model(log-normal selling price, exponential demand, deterministic fixed cost,primary financing)
+
 v3.0.0
 main model(multi period behavior added)
+
+v3.1.0:
+traditional financing with credit rating
