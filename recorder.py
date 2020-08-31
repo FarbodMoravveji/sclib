@@ -244,7 +244,7 @@ class Recorder:
         """
         v = [f'step_{i}' for i in range(301, proceed_steps + 1)]
         total_agents = len(final_list_agents)
-        matrix = np.zeros([total_agents, proceed_steps - 300])
+        matrix = np.ones([total_agents, proceed_steps - 300])
         for agent in final_list_agents:
             aid = agent.agent_id
             for (amount, step) in agent.default_probability_history:

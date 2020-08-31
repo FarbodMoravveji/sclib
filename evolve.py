@@ -317,7 +317,7 @@ class Evolve(Recorder):
                     if buyer.default_probability < agent.default_probability:
                         agent.RF_eligible_contracts.append((amount, due_date, buyer_id))
                 for (amount, due_date, buyer_id) in agent.RF_eligible_contracts:
-                    discounted_amount = (amount / (1 + (buyer.interest_rate/365)) ** (due_date - self.cuurent_step))
+                    discounted_amount = (amount / (1 + (buyer.interest_rate/365)) ** (due_date - self.current_step))
                     feasible_amount = discounted_amount * agent.RF_ratio
                     agent.SCF_capacity += feasible_amount
 
@@ -412,13 +412,13 @@ class Evolve(Recorder):
                     remaining_order_amount -= amount
                     price_to_pay = (1 - supplier.input_margin) * amount
 
-                    if amount > supplier.q * supplier.working_capital and self._wcap_financing and self._SC_financing and supplier.SCF_capacity:
+                    if amount > supplier.q * supplier.working_capital and self._wcap_financing and supplier.SCF_capacity:
 
                         supplier.working_capital += supplier.SCF_capacity
                         supplier.SCF_history.append((supplier.SCF_capacity, self.current_step))
 
                         for tup1 in supplier.receivables:
-                            for tup2 in supplier.agent.RF_eligible_contracts:
+                            for tup2 in supplier.RF_eligible_contracts:
                                 if tup1 == tup2:
                                     buyer = self.find_agent_by_id(tup1[2])
                                     supplier.receivables.remove(tup1)
@@ -516,7 +516,7 @@ class Evolve(Recorder):
                     order.planned_manufacturers.append(manufacturer_agent_id)
                     manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
-                    if amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing and self._SC_financing and manufacturer.SCF_capacity:
+                    if amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing and manufacturer.SCF_capacity:
 
                         manufacturer.working_capital += manufacturer.SCF_capacity
                         manufacturer.SCF_history.append((manufacturer.SCF_capacity, self.current_step))
@@ -728,6 +728,9 @@ class Evolve(Recorder):
                 self.check_for_bankruptcy()
                 if self.current_step > 300:
                     self.credit_calculations()
+
+                if self._SC_financing:
+                    self.check_reverse_factoring_availability()
 
                 if self._wcap_financing:
                     self.repay_debt()
