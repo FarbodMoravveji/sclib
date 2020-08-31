@@ -12,6 +12,7 @@ class Parameters:
     _manufacturer: str              # Pre-defined agent role
     _supplier: str                  # Pre-defined agent role
     _abs_tol: float                 # The parameter used for abs_tolerance in math.isclose() method.
+    _RF_ratio : float               # The ratio of a receivable that can be sold.
 
     def __init__(self):
         """ Constructor """
@@ -22,6 +23,7 @@ class Parameters:
         self._manufacturer = 'm'
         self._supplier = 's'
         self._abs_tol = 1e-4
+        self._RF_ratio = 0.7
 
     @property
     def success(self) -> int:
@@ -46,3 +48,7 @@ class Parameters:
     @property
     def abs_tol(self) -> float:
         return self._abs_tol
+
+    @property
+    def RF_ratio(self) -> float:
+        return self._RF_ratio

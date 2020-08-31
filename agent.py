@@ -96,6 +96,14 @@ class Agent(Parameters):
         self.credit_availability = False
         self.in_default = False
         self.bankruptcy = False
+        self.SCF_availability = False
+        self.SCF_capacity = 0
+        self.RF_eligible_contracts = list()
+        self.scheduled_money_payment = list()
+        self.SCF_history = list()
+        self.total_assets_history = list()
+        self.total_liabilities_history = list()
+        self.equity_history = list()
         self.log_liability = list()
         self.__check_role()
         self.__assign_role_specific_attributes()

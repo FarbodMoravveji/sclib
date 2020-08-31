@@ -7,7 +7,7 @@ import scipy.stats as stats
 import numpy as np
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
-from sclib.agent import Agent
+# from sclib.agent import Agent
 
 
 class Evolve(Recorder):
@@ -31,6 +31,7 @@ class Evolve(Recorder):
         self.next_agent_id = len(list_agents)
 
         self._wcap_financing = False
+        self._SC_financing = False
         self._do_shuffle = False
         self._node_level_disruption = False
         self._seeding = False
@@ -102,6 +103,20 @@ class Evolve(Recorder):
         if self._wcap_financing:
             self._wcap_financing = False
 
+    def activate_SC_financing(self) -> None:
+        """
+        Enables supply chain financing.
+        """
+        if not self._SC_financing:
+            self._SC_financing = True
+
+    def deactivate_SC_financing(self) -> None:
+        """
+        Disables supply chain financing.
+        """
+        if self._SC_financing:
+            self._SC_financing = False
+
     def __break_list(self) -> None:
         """
         Creates lists of retailers, manufacturers and suppliers. 
@@ -155,6 +170,12 @@ class Evolve(Recorder):
                         man.working_capital -= tup[0]
                         man.payables.remove(tup)
 
+            if man.scheduled_money_payment:
+                for tup in man.scheduled_money_payment:
+                    if tup[1] <= self.current_step and not man.in_default:
+                        man.working_capital -= tup[0]
+                        man.scheduled_money_payment.remove(tup)
+
         for ret in self.ret_list:
             if ret.receivables and not ret.bankruptcy:
                 for tup in ret.receivables:
@@ -167,6 +188,12 @@ class Evolve(Recorder):
                     if tup[1] <= self.current_step and not ret.in_default:
                         ret.working_capital -= tup[0]
                         ret.payables.remove(tup)
+
+            if ret.scheduled_money_payment:
+                for tup in ret.scheduled_money_payment:
+                    if tup[1] <= self.current_step and not ret.in_default:
+                        ret.working_capital -= tup[0]
+                        ret.scheduled_money_payment.remove(tup)
 
     def calculate_inventory_receivable_payable_values(self):
         """
@@ -205,9 +232,13 @@ class Evolve(Recorder):
             if not agent.bankruptcy:
                 agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value + agent.receivables_value
                 agent.list_assets.append(agent.total_assets)
+                agent.total_assets_history.append((agent.total_assets, self.current_step))
                 agent.total_liabilities = agent.liability + agent.payables_value + agent.long_term_debt
+                agent.total_liabilities_history.append((agent.total_liabilities, self.current_step))
                 agent.equity = agent.total_assets - agent.total_liabilities
                 agent.list_equity.append(agent.equity)
+                agent.equity_history.append((agent.equity, self.current_step))
+
                 if self.current_step > 300:
                     agent.sigma_equity = stdev(agent.list_equity)
                     agent.sigma_assets = np.std(agent.list_assets)
@@ -232,6 +263,21 @@ class Evolve(Recorder):
     #                 agent.duration_of_obligations = 1
     #         else:
     #             agent.duration_of_obligations = 1
+
+    def check_reverse_factoring_availability(self):
+        eligable_agents = [agent for agent in self.list_agents if agent.role == 's' or agent.role == 'm']
+        for agent in eligable_agents:
+            agent.SCF_availability = False
+            if not agent.receivables:
+                continue
+            else:
+                sellable_receivables = 0
+                for (_, _, buyer_id) in agent.receivables:
+                    buyer = self.find_agent_by_id(buyer_id)
+                    if buyer.default_probability < agent.default_probability:
+                        sellable_receivables += 1
+                if sellable_receivables >= 1:
+                    agent.SCF_availability = True
 
     def check_credit_availability(self):
         """
@@ -263,7 +309,20 @@ class Evolve(Recorder):
 
     def determine_capacity(self):
         for agent in self.list_agents:
-            if self._wcap_financing and agent.credit_availability and not agent.bankruptcy:
+            agent.SCF_capacity = 0
+            agent.RF_eligible_contracts = list()
+            if self._wcap_financing and agent.credit_availability and self._SC_financing and agent.SCF_availability and not agent.bankruptcy:
+                for (amount, due_date, buyer_id) in agent.receivables:
+                    buyer = self.find_agent_by_id(buyer_id)
+                    if buyer.default_probability < agent.default_probability:
+                        agent.RF_eligible_contracts.append((amount, due_date, buyer_id))
+                for (amount, due_date, buyer_id) in agent.RF_eligible_contracts:
+                    discounted_amount = (amount / (1 + (buyer.interest_rate/365)) ** (due_date - self.cuurent_step))
+                    feasible_amount = discounted_amount * agent.RF_ratio
+                    agent.SCF_capacity += feasible_amount
+
+                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period) + agent.SCF_capacity))
+            elif self._wcap_financing and agent.credit_availability and not agent.bankruptcy:
                 agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)))
             else:
                 agent.prod_cap = max(0, agent.q * agent.working_capital)
@@ -352,8 +411,32 @@ class Evolve(Recorder):
                     # manufacturer.orders_succeeded += amount
                     remaining_order_amount -= amount
                     price_to_pay = (1 - supplier.input_margin) * amount
-                    
-                    if amount > supplier.q * supplier.working_capital and self._wcap_financing:
+
+                    if amount > supplier.q * supplier.working_capital and self._wcap_financing and self._SC_financing and supplier.SCF_capacity:
+
+                        supplier.working_capital += supplier.SCF_capacity
+                        supplier.SCF_history.append((supplier.SCF_capacity, self.current_step))
+
+                        for tup1 in supplier.receivables:
+                            for tup2 in supplier.agent.RF_eligible_contracts:
+                                if tup1 == tup2:
+                                    buyer = self.find_agent_by_id(tup1[2])
+                                    supplier.receivables.remove(tup1)
+                                    new_amount = tup2[0] * (1 - supplier.RF_ratio)
+                                    supplier.receivables.append((new_amount, tup2[1], tup2[2]))
+                                    for tup in buyer.payables:
+                                        if tup[0] == tup1[0] and tup[1] == tup1[1]:
+                                            pay_to_bank = tup[0] - new_amount
+                                            buyer.payables.remove(tup)
+                                            buyer.payables.append((new_amount, tup[1], tup[2]))
+                                            buyer.scheduled_money_payment.append((pay_to_bank, tup2[1]))
+                        
+                        excess_order = amount - (supplier.q * (supplier.working_capital + supplier.SCF_capacity))
+                        if excess_order > 0:
+                            loan_amount = excess_order / supplier.q
+                            self.short_term_financing(supplier.agent_id, loan_amount)
+
+                    elif amount > supplier.q * supplier.working_capital and self._wcap_financing:
                         excess_order = amount - (supplier.q * supplier.working_capital)
                         loan_amount = excess_order / supplier.q
                         self.short_term_financing(supplier.agent_id, loan_amount)
@@ -433,7 +516,31 @@ class Evolve(Recorder):
                     order.planned_manufacturers.append(manufacturer_agent_id)
                     manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
-                    if amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing:
+                    if amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing and self._SC_financing and manufacturer.SCF_capacity:
+
+                        manufacturer.working_capital += manufacturer.SCF_capacity
+                        manufacturer.SCF_history.append((manufacturer.SCF_capacity, self.current_step))
+
+                        for tup1 in manufacturer.receivables:
+                            for tup2 in manufacturer.agent.RF_eligible_contracts:
+                                if tup1 == tup2:
+                                    buyer = self.find_agent_by_id(tup1[2])
+                                    manufacturer.receivables.remove(tup1)
+                                    new_amount = tup2[0] * (1 - manufacturer.RF_ratio)
+                                    manufacturer.receivables.append((new_amount, tup2[1], tup2[2]))
+                                    for tup in buyer.payables:
+                                        if tup[0] == tup1[0] and tup[1] == tup1[1]:
+                                            pay_to_bank = tup[0] - new_amount
+                                            buyer.payables.remove(tup)
+                                            buyer.payables.append((new_amount, tup[1], tup[2]))
+                                            buyer.scheduled_money_payment.append((pay_to_bank, tup2[1]))
+                        
+                        excess_order = amount - (manufacturer.q * (manufacturer.working_capital + manufacturer.SCF_capacity))
+                        if excess_order > 0:
+                            loan_amount = excess_order / manufacturer.q
+                            self.short_term_financing(manufacturer.agent_id, loan_amount)
+
+                    elif amount > manufacturer.q * manufacturer.working_capital and self._wcap_financing:
                         excess_order = amount - (manufacturer.q * manufacturer.working_capital)
                         loan_amount = excess_order / manufacturer.q
                         self.short_term_financing(manufacturer.agent_id, loan_amount)
