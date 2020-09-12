@@ -17,9 +17,9 @@ The agent-based simulation of supply chain finance and credit risk.
 This repository is developed for the purpose of simulating a supply chain with
 Agent-Based approach. The mentioned supply chain is comprised of 3 layers that
 refer to the existance of retailers, Manufacturers and suppliers in the model.
-Behaviors such as sending orders to upstream agents, delivery of products to 
+Features such as sending orders to upstream agents, delivery of products to 
 downstream agents, payment execution, bank financing, reverse factoring and 
-credit risk are simulated during each step of the model.
+credit risk evaluation are simulated during each step of the model.
 
 ---
 ## How to use
@@ -52,18 +52,18 @@ simulation yourself:
 
 > 3- Run the model using the following lines of code:
 
->> from sclib.generate_agents import GenAgents
->> from sclib.evolve import Evolve
+>> from sclib.generate_agents import GenAgents  
+>> from sclib.evolve import Evolve  
 
->> generate = GenAgents(excel_file = r'file_path')
->> model = Evolve(generate.list_agents)
+>> generate = GenAgents(excel_file = r'file_path')  
+>> model = Evolve(generate.list_agents)  
 
->> model.activate_wcap_financing()  _(Optional short-term bank financing)_
->> model.activate_SC_financing()    _(Optional reverse factoring)_
->> model.always_shuffle()           _(Otional competition among agents in each layer)_
+>> model.activate_wcap_financing()  _(Optional short-term bank financing)_  
+>> model.activate_SC_financing()    _(Optional reverse factoring)_  
+>> model.always_shuffle()           _(Otional competition among agents in each layer)_  
 
->> Desired_step_number = n (int)
->> model.proceed(Desired_step_number)
+>> Desired_step_number = n (int)  
+>> model.proceed(Desired_step_number)  
 
 ---
 ## Visualization
@@ -71,41 +71,42 @@ simulation yourself:
 After using the preceding blocks of code, several dynamics of the model can be plotted. Data is stored in dataframes and in order to 
 visualize all of them (including the dynamics of working capital, short-term financing, default probability, supply chain financing, total assets, total lliabilities and equity) we need to use the following block of code:
 
->> from sclib.visualizer import Visualizer
+>> from sclib.visualizer import Visualizer  
 
->> final_list_agents = model.list_agents
->> model.log_wcap(Desired_step_number, final_list_agents)
->> model.log_short_term_financing(Desired_step_number, final_list_agents)
->> model.log_default_probability(Desired_step_number, final_list_agents)
->> model.log_supply_chain_financing(Desired_step_number, final_list_agents)
->> model.log_assets(Desired_step_number, final_list_agents)
->> model.log_liabilities(Desired_step_number, final_list_agents)
->> model.log_Equity(Desired_step_number, final_list_agents)
+>> final_list_agents = model.list_agents  
+>> model.log_wcap(Desired_step_number, final_list_agents)  
+>> model.log_short_term_financing(Desired_step_number, final_list_agents)  
+>> model.log_default_probability(Desired_step_number, final_list_agents)  
+>> model.log_supply_chain_financing(Desired_step_number, final_list_agents)  
+>> model.log_assets(Desired_step_number, final_list_agents)  
+>> model.log_liabilities(Desired_step_number, final_list_agents)  
+>> model.log_Equity(Desired_step_number, final_list_agents)  
 
->> vis01 = Visualizer(dfrm = model.log_working_capital)
->> vis01.line_plot(title = 'working capital dynamics of each agent', xlabel = 'step', ylabel = 'working capital' , legend = True)
+>> vis01 = Visualizer(dfrm = model.log_working_capital)  
+>> vis01.line_plot(title = 'working capital dynamics of each agent', xlabel = 'step', ylabel = 'working capital' , legend = True)  
 
->> vis02 = Visualizer(dfrm = model.log_financing)
->> vis02.line_plot(title = 'financing history of each agent', xlabel = 'step', ylabel = 'amount received' , legend = False)
+>> vis02 = Visualizer(dfrm = model.log_financing)  
+>> vis02.line_plot(title = 'financing history of each agent', xlabel = 'step', ylabel = 'amount received' , legend = False)  
 
->> vis03 = Visualizer(dfrm = model.log_dp)
->> vis03.line_plot(title = 'credit rating history of each agent', xlabel = 'step', ylabel = 'default probability' , legend = False)
+>> vis03 = Visualizer(dfrm = model.log_dp)  
+>> vis03.line_plot(title = 'credit rating history of each agent', xlabel = 'step', ylabel = 'default probability' , legend = False)  
 
->> vis04 = Visualizer(dfrm = model.log_SCF)
->> vis04.line_plot(title = 'Reverse factoring history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
+>> vis04 = Visualizer(dfrm = model.log_SCF)  
+>> vis04.line_plot(title = 'Reverse factoring history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)  
 
->> vis05 = Visualizer(dfrm = model.log_total_assets)
->> vis05.line_plot(title = 'total assets history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
+>> vis05 = Visualizer(dfrm = model.log_total_assets)  
+>> vis05.line_plot(title = 'total assets history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)  
 
->> vis06 = Visualizer(dfrm = model.log_total_liabilities)
->> vis06.line_plot(title = 'total liabilities history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
+>> vis06 = Visualizer(dfrm = model.log_total_liabilities)  
+>> vis06.line_plot(title = 'total liabilities history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)  
 
->> vis07 = Visualizer(dfrm = model.log_equity)
->> vis07.line_plot(title = 'equity history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
+>> vis07 = Visualizer(dfrm = model.log_equity)  
+>> vis07.line_plot(title = 'equity history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)  
  
 
 ---
 ## Author
 
-* **Farbod Moravveji** - *MSc. of financial engineering, Tarbiat Modares university.*
+* **Farbod Moravveji** - *MSc. of financial engineering, Tarbiat Modares university.*  
+_Email Address: farbod.moravveji@modares.ac.ir_
 
