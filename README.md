@@ -16,7 +16,7 @@ The agent-based simulation of supply chain finance and credit risk.
 
 This repository is developed for the purpose of simulating a supply chain with
 Agent-Based approach. The mentioned supply chain is comprised of 3 layers that
-refer to the existance of retailers, Manufacturers and suppliers in the model.  
+refer to the existance of retailers, Manufacturers and suppliers in the model.
 Behaviors such as sending orders to upstream agents, delivery of products to 
 downstream agents, payment execution, bank financing, reverse factoring and 
 credit risk are simulated during each step of the model.
