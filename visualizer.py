@@ -31,7 +31,7 @@ class Visualizer:
         """
         This method creates a DataFrame of 1 column with aggregated values of an
         Evolve DataFrame at each step.
-        
+
         Returns:
             A pandas DataFrame consisted of only one column which holds the aggregate
             values at each step.

@@ -10,6 +10,7 @@ class GenAgents:
     list called list_agents and returns that list.
     """
     list_agents: List[Agent]
+
     def __init__(self, excel_file: str):
         """
         constructor

@@ -145,7 +145,23 @@ class Evolve(Recorder):
                 agent.default_probability = self.N(-agent.distance_to_default)
                 agent.default_probability_history.append((agent.default_probability, self.current_step))
 
+    def calculate_agent_interest_rate(self):
+        """
+        After credit rating of the agent, the short term financing needs to be
+        calculated accordingly.
+        """
+        for agent in self.list_agents:
+            if agent.bankruptcy:
+                continue
+            else:
+                new_rate = agent.default_probability + agent.interest_rate_margin
+                agent.interest_rate = agent.risk_free_rate + agent.interest_rate_margin if new_rate <= agent.risk_free_rate else new_rate
+
     def check_receivables_and_payables(self):
+        """
+        This method check payables and receivables due date. If any accounts are
+        due at the current step of the model, they will be handeled here.
+        """
         for sup in self.sup_list:
             if sup.receivables and not sup.bankruptcy:
                 for tup in sup.receivables:                                    # sup.receivables is a list of tuples in the form [(val, due_date, ds_id)]
@@ -226,6 +242,10 @@ class Evolve(Recorder):
                     agent.payables_value = cur_pay
 
     def update_total_assets_and_liabilities_and_equity(self):
+        """
+        The value of total_assets, total liabilities and equity of each agent is
+        calculated by this method at the beginning of each step.
+        """
         for agent in self.list_agents:
             if not agent.bankruptcy:
                 agent.total_assets = agent.working_capital + agent.fixed_assets + agent.inventory_value + agent.receivables_value
@@ -244,28 +264,32 @@ class Evolve(Recorder):
                         yearly_log_return_list.append(sum(daily_log_return_list[i:i + 365]))
                     agent.sigma_assets = np.std(yearly_log_return_list)
 
-    # def calculate_duration_of_obligations(self):
-    #     """
-    #     Calculates the duration of all remaining loan obligations to be used as
-    #     T in KMV formulation.
-    #     """
-    #     for agent in self.list_agents:
-    #         l = list()
-    #         if agent.financing_history:
-    #             for (amount, _, due_date) in agent.financing_history:
-    #                 if due_date > self.current_step:
-    #                     l.append((amount, due_date - self.current_step))
-    #             present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
-    #             pv_of_total_obligations = sum(i for i, _ in present_value)
-    #             if pv_of_total_obligations != 0:
-    #                 timed_obligations = sum(i * j for i, j in present_value)
-    #                 agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
-    #             else:
-    #                 agent.duration_of_obligations = 1
-    #         else:
-    #             agent.duration_of_obligations = 1
+    def calculate_duration_of_obligations(self):
+        """
+        Calculates the duration of all remaining loan obligations of the agent.
+        """
+        for agent in self.list_agents:
+            l = list()
+            if agent.financing_history:
+                for (amount, _, due_date) in agent.financing_history:
+                    if due_date > self.current_step:
+                        l.append((amount, due_date - self.current_step))
+                present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
+                pv_of_total_obligations = sum(i for i, _ in present_value)
+                if pv_of_total_obligations != 0:
+                    timed_obligations = sum(i * j for i, j in present_value)
+                    agent.duration_of_obligations = timed_obligations / pv_of_total_obligations
+                else:
+                    agent.duration_of_obligations = 1
+            else:
+                agent.duration_of_obligations = 1
 
     def check_reverse_factoring_availability(self):
+        """
+        This method goes through agent's accounts receivable to check if there
+        is any sellable that can be sold. The important feature that makes a 
+        receivable sellable is the better credit rating of downstream partners.
+        """
         eligable_agents = [agent for agent in self.list_agents if agent.role == 's' or agent.role == 'm']
         for agent in eligable_agents:
             agent.SCF_availability = False
@@ -303,12 +327,19 @@ class Evolve(Recorder):
                 agent.credit_availability = False
 
     def fixed_cost_and_cost_of_capital_subtraction(self):
+        """
+        This method calculates and subtracts the daily costs for each agent.
+        """
         for agent in self.list_agents:
             if not agent.bankruptcy:
-                step_cost = agent.fixed_cost + (agent.interest_rate / 365) * agent.working_capital
+                step_cost = agent.fixed_cost + (agent.risk_free_rate / 365) * agent.working_capital
                 agent.working_capital -= step_cost
 
     def determine_capacity(self):
+        """
+        Production capacity of each agent is determined in this method by 
+        considering its working capital and possible financing values.
+        """
         for agent in self.list_agents:
             agent.SCF_capacity = 0
             agent.RF_eligible_contracts = list()
@@ -330,6 +361,11 @@ class Evolve(Recorder):
                 agent.prod_cap = max(0, agent.working_capital / price_mean)
 
     def receive_order_by_retailers(self):
+        """
+        Retailers receive orders in different frequencies. In this method we 
+        check to see if it is the time for agent to receive orders from costumers
+        outside the supply chain.
+        """
         for ret in self.ret_list:
             if ret.consumer_demand:
                 ret.consumer_demand = 0.0
@@ -338,12 +374,19 @@ class Evolve(Recorder):
                 ret.consumer_demand = min(rand_value, ret.prod_cap)
 
     def create_order_object(self):
+        """
+        An order object according to order details received by the retailer is 
+        created in this method.
+        """
         for ret in self.ret_list:
             if ret.consumer_demand and not ret.bankruptcy:
                 order_object = Order_Package(ret.consumer_demand, ret.agent_id, self.current_step, ret.selling_price)
                 self.list_orders.append(order_object)
 
     def order_to_manufacturers(self):
+        """
+        Ordering behavior of retailers.
+        """
         orders_to_go_up = [order for order in self.list_orders if 
                             order.completed_ordering_to_manufacturers == False]
         if self._do_shuffle:
@@ -375,6 +418,9 @@ class Evolve(Recorder):
             order.num_manufacturers = len(order.manufacturers)
 
     def order_to_suppliers(self):
+        """
+        Ordering behavior of manufacturers.
+        """
         orders_to_go_up = [order for order in self.list_orders if 
                            order.completed_ordering_to_manufacturers == True 
                            and order.completed_ordering_to_suppliers == False]
@@ -444,6 +490,10 @@ class Evolve(Recorder):
                 order.completed_ordering_to_suppliers = True
 
     def calculate_order_partners(self):
+        """
+        Order objects with completed ordering flow are checked in this method to
+        identify agents participating in the order object.
+        """
         completed_order_flow = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
                                         and order.completed_ordering_to_suppliers == True 
                                         and order.created_pairs == False]
@@ -464,6 +514,9 @@ class Evolve(Recorder):
                     order.manufacturers_num_partners.append((man, counter[man]))
 
     def deliver_to_manufacturers(self):
+        """
+        Delivery behavior of suppliers.
+        """
         begin_delivery_flow = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
                                and order.completed_ordering_to_suppliers == True 
                                and order.created_pairs == True
@@ -502,6 +555,10 @@ class Evolve(Recorder):
                 order.completed_delivering_to_manufacturers = True
 
     def plan_delivery_to_retailer(self):
+        """
+        Short  financing of manufacturers and payment to manufacturers
+        are planned in this method.
+        """
         plan_delivery_list = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
                               and order.completed_ordering_to_suppliers == True 
                               and order.created_pairs == True]
@@ -519,7 +576,7 @@ class Evolve(Recorder):
                         manufacturer.SCF_history.append((manufacturer.SCF_capacity, self.current_step))
 
                         for tup1 in manufacturer.receivables:
-                            for tup2 in manufacturer.agent.RF_eligible_contracts:
+                            for tup2 in manufacturer.RF_eligible_contracts:
                                 if tup1 == tup2:
                                     buyer = self.find_agent_by_id(tup1[2])
                                     manufacturer.receivables.remove(tup1)
@@ -543,6 +600,9 @@ class Evolve(Recorder):
                         self.short_term_financing(manufacturer.agent_id, loan_amount)
 
     def deliver_to_retailer(self):
+        """
+        Delivery behavior of manufacturer.
+        """
         possible_delivery_to_retailer = [order for order in self.list_orders if order.completed_ordering_to_manufacturers == True 
                                          and order.completed_ordering_to_suppliers == True 
                                          and order.created_pairs == True]
@@ -575,6 +635,9 @@ class Evolve(Recorder):
                                 order.num_delivered_to_retailer += 1
 
     def plan_delivery_by_retailer(self):
+        """
+        Short term bank financing of retailer is planned in this method.
+        """
         plan_delivery_list = [order for order in self.list_orders if order.completed_delivering_to_manufacturers
                               and not order.planned_delivery_by_retailer
                               and order.num_delivered_to_retailer == order.num_manufacturers]
@@ -591,6 +654,9 @@ class Evolve(Recorder):
                 self.short_term_financing(retailer.agent_id, loan_amount)
 
     def retailer_delivery(self):
+        """
+        Delivery behavior of retailers.
+        """
         delivery_by_retailer = [order for order in self.list_orders if order.completed_delivering_to_manufacturers
                                 and not order.order_completed
                                 and order.completion_step == self.current_step]
@@ -631,6 +697,9 @@ class Evolve(Recorder):
                         agent.liability -= amount
 
     def check_for_bankruptcy(self):
+        """
+        Checking if the equity value of an agent has reached zero.
+        """
         for agent in self.list_agents:
             if agent.equity <= 0 and not agent.bankruptcy:
                 bankrupted_agent_role = agent.role
@@ -672,6 +741,7 @@ class Evolve(Recorder):
                 self.check_for_bankruptcy()
                 if self.current_step > 400:
                     self.credit_calculations()
+                    self.calculate_agent_interest_rate()
 
                 if self._SC_financing:
                     self.check_reverse_factoring_availability()

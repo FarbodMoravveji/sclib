@@ -1,4 +1,3 @@
-
 class Order_Package:
     """
     An instance of this class is created each time an order is received by any
@@ -16,7 +15,8 @@ class Order_Package:
          Input:
            initial_order_amount: The order amount received from outside of the network.
            retailer_agent_id: agent_id related to the retailer.
-           order_initialization_step: marks the step that the order object is created.
+           order_initialization_step: Marks the step that the order object is created.
+           retailer_selling_price: selling price of retailer at the moment of instanciating an order object.
         """
         self.order_number = Order_Package.order_number
         self.initial_order_amount = initial_order_amount

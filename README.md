@@ -102,11 +102,9 @@ visualize all of them (including the dynamics of working capital, short-term fin
 
 >> vis07 = Visualizer(dfrm = model.log_equity)  
 >> vis07.line_plot(title = 'equity history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)  
- 
 
 ---
 ## Author
 
 * **Farbod Moravveji** - *MSc. of financial engineering, Tarbiat Modares university.*  
 _Email Address: farbod.moravveji@modares.ac.ir_
-

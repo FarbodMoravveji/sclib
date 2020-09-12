@@ -84,7 +84,7 @@ class Agent(Parameters):
         self.receivables_value = 0.0
         self.payables = list()
         self.payables_value = 0.0
-        
+
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
         self.current_credit_capacity = 0.0
@@ -106,7 +106,7 @@ class Agent(Parameters):
         self.__check_role()
         self.__assign_role_specific_attributes()
 
-    def __assign_role_specific_attributes(self) -> None: 
+    def __assign_role_specific_attributes(self) -> None:
         """
         Private method to add the following attributes to the following roles:
 
@@ -115,7 +115,7 @@ class Agent(Parameters):
         manufacturer             N                 Y
         supplier                 N                 N
         """
-         
+
         if self.role == self.retailer:
             self.consumer_demand = 0.0
             self.orders_succeeded = 0.0

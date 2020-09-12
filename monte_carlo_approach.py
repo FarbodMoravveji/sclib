@@ -13,51 +13,13 @@ class Multiple_Runs:
     independent runs.
     """
     def __init__(self, file_path: str):
-        """
-
-        """
         self._file_path = file_path
-        # self._num_agents = len(self._Evolve_Object.model.list_agents)
-        
-    # @property
-    # def Evolve_Object(self) -> object:
-    #     return self._Evolve_Object
-    
-    # @property
-    # def num_agents(self) -> object:
-    #     return self._num_agents
 
-    # def average_path(self, i: int, n: int) -> dict:
-    #     """
-    #     A method that simulates n replication of i_step Evolve_Object runs and
-    #     captures the valid average path of each agent's working capital.
-    #     """
-    #     Evolve_Object = self._Evolve_Object
-    #     run_num = 1
-    #     indexes = range(self._num_agents)
-    #     index_list = [f'step_{step}' for step in range(1, i + 1)]
-    #     dataframes = dict()
-
-    #     for replication in range(n):
-    #         Evolve_Object.proceed(i)
-    #         wcap_dataframe = Evolve_Object.log_working_capital
-    #         for agent in indexes:
-    #             wcap_vector = wcap_dataframe[wcap_dataframe.index == agent]
-    #             if run_num == 1:
-    #                 # column_list = [f'run_{run_num}']
-    #                 log_path = pd.DataFrame(wcap_vector, index = index_list, columns = [f'run_{run_num}'])
-    #                 dataframes[f'log_path_for_agent_{agent}'] = log_path
-    #             else:
-    #                 temp_df = pd.DataFrame(wcap_vector, index = index_list, columns = [f'run_{run_num}'])
-    #                 dataframes[f'log_path_for_agent_{agent}'].join(temp_df)
-    #         Evolve_Object.restart_model()
-    #         run_num += 1
-
-    #     return dataframes
 
     def average_pd(self, i: int, n: int, wcap_financing: bool = True, SC_financing: bool = True):
         """
-        
+        This method is responsible for calculating the average probability of
+        default in each layer after multiple runs.
         """
         matrix_dp = np.zeros([3,n])
         matrix_dn = np.zeros([3,n])

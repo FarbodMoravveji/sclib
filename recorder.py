@@ -180,27 +180,6 @@ class Recorder:
         self.default_manufacturer = copy.deepcopy(defman)
         self.default_supplier = copy.deepcopy(defsup)
 
-    # def __remember_initial_state(self) -> None:
-    #     """
-    #     This method is used in __init__ in order to save the initial state
-    #     of model, that is combined of the initial state of list_agents, 
-    #     the current step and logs for working capital, delivery and orders.
-    #     """
-    #     self._initial_list_agents = self.list_agents
-    #     self._initial_log_working_capital = self._log_working_capital
-    #     self._initial_log_orders = self._log_orders
-    #     self._initial_log_delivery = self._log_delivery
-   
-    # def restart_model(self):
-    #     """
-    #     This method brings the model back to its initial state.
-    #     """
-    #     self.list_agents = self._initial_list_agents
-    #     self._log_working_capital = self._initial_log_working_capital
-    #     self._log_orders = self._initial_log_orders
-    #     self._log_delivery = self._initial_log_delivery
-    #     self.current_step = 0
-
     def log_wcap(self, proceed_steps: int, final_list_agents: list) -> None:
         """
         This method creates a DataFrame with working_capital amounts.
@@ -343,13 +322,3 @@ class Recorder:
             if not agent.bankruptcy:
                 step_selling_price = np.random.lognormal(mean = log(agent.mu_selling_price), sigma = agent.sigma_selling_price)
                 agent.selling_price = step_selling_price
-
-    # def step_profit_dataframe(self) -> DataFrame:
-    #     """
-    #     Uses the log_working_capital DataFrame to create a new DataFrame containing
-    #     step profot values with dimensions identical to log_working_capital.
-    #     """
-    #     log_step_profit = self.log_working_capital.diff(axis = 1)
-    #     log_step_profit.fillna(0, inplace = True)
-    #     return log_step_profit
-    
