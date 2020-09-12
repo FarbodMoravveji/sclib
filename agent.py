@@ -21,7 +21,6 @@ class Agent(Parameters):
                  sigma_selling_price: float = 0.06,
                  q: float = 0.90,
                  consumer_demand_mean: float = 60,
-                 p_delivery: float = 0.80,
                  input_margin: float = 0.50,
                  interest_rate: float = 0.002,
                  fixed_cost: float = 0.0,
@@ -53,7 +52,6 @@ class Agent(Parameters):
         self.selling_price = 0.0
         self.q = q
         self.consumer_demand_mean = consumer_demand_mean
-        self.p_delivery = p_delivery
         self.prod_cap = 0.0
         self.fixed_cost = fixed_cost
         self.input_margin = input_margin

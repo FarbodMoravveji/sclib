@@ -242,13 +242,13 @@ class Recorder:
             proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
             final_list_agents = The final agents_object.list_agent.
         """
-        v = [f'step_{i}' for i in range(301, proceed_steps + 1)]
+        v = [f'step_{i}' for i in range(401, proceed_steps + 1)]
         total_agents = len(final_list_agents)
-        matrix = np.ones([total_agents, proceed_steps - 300])
+        matrix = np.ones([total_agents, proceed_steps - 400])
         for agent in final_list_agents:
             aid = agent.agent_id
             for (amount, step) in agent.default_probability_history:
-                matrix[aid][step - 301] = amount
+                matrix[aid][step - 401] = amount
         log_dp = pd.DataFrame(matrix, columns = v)
         self._log_dp = log_dp
 

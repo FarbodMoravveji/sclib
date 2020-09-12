@@ -54,7 +54,6 @@ class GenAgents:
                       self.df["sigma_selling_price"].at[i],
                       self.df["q"].at[i], 
                       self.df["consumer_demand_mean"].at[i], 
-                      self.df["p_delivery"].at[i],
                       self.df["input_margin"].at[i],
                       self.df["interest_rate"].at[i],
                       self.df["fixed_cost"].at[i],

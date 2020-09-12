@@ -2,13 +2,11 @@ from random import shuffle
 from operator import itemgetter
 from collections import Counter
 from statistics import mean
-from statistics import stdev
 import scipy.stats as stats
 import numpy as np
+from numpy import diff, log
 from sclib.recorder import Recorder
 from sclib.order import Order_Package
-# from sclib.agent import Agent
-
 
 class Evolve(Recorder):
     """
@@ -239,9 +237,12 @@ class Evolve(Recorder):
                 agent.list_equity.append(agent.equity)
                 agent.equity_history.append((agent.equity, self.current_step))
 
-                if self.current_step > 300:
-                    agent.sigma_equity = stdev(agent.list_equity)
-                    agent.sigma_assets = np.std(agent.list_assets)
+                if self.current_step > 400:
+                    daily_log_return_list = diff(log(agent.list_assets))
+                    yearly_log_return_list = list()
+                    for i in range(len(daily_log_return_list) - 365):
+                        yearly_log_return_list.append(sum(daily_log_return_list[i:i + 365]))
+                    agent.sigma_assets = np.std(yearly_log_return_list)
 
     # def calculate_duration_of_obligations(self):
     #     """
@@ -311,6 +312,7 @@ class Evolve(Recorder):
         for agent in self.list_agents:
             agent.SCF_capacity = 0
             agent.RF_eligible_contracts = list()
+            price_mean = agent.mu_selling_price + 0.1
             if self._wcap_financing and agent.credit_availability and self._SC_financing and agent.SCF_availability and not agent.bankruptcy:
                 for (amount, due_date, buyer_id) in agent.receivables:
                     buyer = self.find_agent_by_id(buyer_id)
@@ -321,11 +323,11 @@ class Evolve(Recorder):
                     feasible_amount = discounted_amount * agent.RF_ratio
                     agent.SCF_capacity += feasible_amount
 
-                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period) + agent.SCF_capacity))
-            elif self._wcap_financing and agent.credit_availability and not agent.bankruptcy:
-                agent.prod_cap = max(0, agent.q * (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)))
+                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period) + agent.SCF_capacity) / price_mean)
+            elif self._wcap_financing and agent.credit_availability and not self._SC_financing and not agent.bankruptcy:
+                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)) / price_mean)
             else:
-                agent.prod_cap = max(0, agent.q * agent.working_capital)
+                agent.prod_cap = max(0, agent.working_capital / price_mean)
 
     def receive_order_by_retailers(self):
         for ret in self.ret_list:
@@ -338,7 +340,7 @@ class Evolve(Recorder):
     def create_order_object(self):
         for ret in self.ret_list:
             if ret.consumer_demand and not ret.bankruptcy:
-                order_object = Order_Package(ret.consumer_demand, ret.agent_id, self.current_step)
+                order_object = Order_Package(ret.consumer_demand, ret.agent_id, self.current_step, ret.selling_price)
                 self.list_orders.append(order_object)
 
     def order_to_manufacturers(self):
@@ -350,9 +352,6 @@ class Evolve(Recorder):
         for order in orders_to_go_up:
             remaining_order_amount = order.initial_order_amount
             retailer = self.find_agent_by_id(order.retailer_agent_id)
-            
-            # if retailer.orders_succeeded:
-            #     retailer.orders_succeeded = 0
 
             elig = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.man_list if agent.prod_cap > 0 and agent.selling_price < retailer.selling_price and not agent.bankruptcy]
             
@@ -368,7 +367,7 @@ class Evolve(Recorder):
                 manufacturer = self.find_agent_by_id(agent_id)
                 amount = min(cap, remaining_order_amount)
                 manufacturer.prod_cap -= amount
-                order.manufacturers.append((agent_id, manufacturer.production_time, amount))
+                order.manufacturers.append((agent_id, manufacturer.production_time, amount, manufacturer.selling_price))
                 # retailer.orders_succeeded += amount
                 remaining_order_amount -= amount
             
@@ -388,8 +387,6 @@ class Evolve(Recorder):
                 manufacturer = self.find_agent_by_id(order_tuple[0])
                 remaining_order_amount = order_tuple[2]
                 
-                # if manufacturer.orders_succeeded:
-                #     manufacturer.orders_succeeded = 0
 
                 elig = [(agent.agent_id, agent.selling_price, agent.prod_cap) for agent in self.sup_list if agent.prod_cap > 0 and agent.selling_price < manufacturer.selling_price and not agent.bankruptcy]
 
@@ -407,7 +404,7 @@ class Evolve(Recorder):
                     supplier = self.find_agent_by_id(agent_id)
                     amount = min(cap, remaining_order_amount)
                     supplier.prod_cap -= amount
-                    order.suppliers.append((agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id))
+                    order.suppliers.append((agent_id, amount, self.current_step + supplier.production_time, manufacturer.agent_id, supplier.selling_price))
                     # manufacturer.orders_succeeded += amount
                     remaining_order_amount -= amount
                     price_to_pay = (1 - supplier.input_margin) * amount
@@ -451,7 +448,7 @@ class Evolve(Recorder):
                                         and order.completed_ordering_to_suppliers == True 
                                         and order.created_pairs == False]
         for order in completed_order_flow:
-            for (supplier_id, _, _, manufacturer_id) in order.suppliers:
+            for (supplier_id, _, _, manufacturer_id, _) in order.suppliers:
                 order.manufacturer_supplier_pairs.add((supplier_id, manufacturer_id))
 
             order.created_pairs = True
@@ -472,25 +469,25 @@ class Evolve(Recorder):
                                and order.created_pairs == True
                                and order.completed_delivering_to_manufacturers == False]
         for order in begin_delivery_flow:
-            for(supplier_agent_id, amount, delivery_step, manufacturer_agent_id) in order.suppliers:
+            for(supplier_agent_id, amount, delivery_step, manufacturer_agent_id, price) in order.suppliers:
                 if (supplier_agent_id, manufacturer_agent_id) not in order.manufacturer_supplier_pairs:
                     raise Exception(f'There is something wrong with calculate_order_partners method; It is not making all pairs')
                 if delivery_step == self.current_step:
                     supplier = self.find_agent_by_id(supplier_agent_id)
                     manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
-                    step_income = supplier.selling_price * amount            #Calculating profit using a fixed margin for suppliers
-                    compounded_for_tc = step_income * (1 + (supplier.tc_rate / 365))**supplier.payment_term   #Calculates the payment value under trade credit,
-                    supplier.receivables.append((compounded_for_tc, self.current_step + supplier.payment_term, manufacturer_agent_id))# Addine TC to receivables.
-                    manufacturer.payables.append((compounded_for_tc, self.current_step + supplier.payment_term, supplier_agent_id))# Adding TC to payables.
+                    step_income = price * amount            #Calculating profit using a fixed margin for suppliers
+                    # compounded_for_tc = step_income * (1 + (supplier.tc_rate / 365))**supplier.payment_term   #Calculates the payment value under trade credit,
+                    supplier.receivables.append((step_income, self.current_step + supplier.payment_term, manufacturer_agent_id))# Addine TC to receivables.
+                    manufacturer.payables.append((step_income, self.current_step + supplier.payment_term, supplier_agent_id))# Adding TC to payables.
                     # supplier.working_capital += step_income
                     for tup in supplier.inventory_track:
                         if tup[1] <= self.current_step:
                             supplier.inventory_track.remove(tup)
 
-                    price_to_pay = compounded_for_tc
+                    # price_to_pay = compounded_for_tc
                     # manufacturer.working_capital -= price_to_pay
-                    manufacturer.inventory_track.append((price_to_pay, self.current_step + manufacturer.production_time))
+                    manufacturer.inventory_track.append((step_income, self.current_step + manufacturer.production_time))
 
                     for index, item in enumerate(order.manufacturers_num_partners):
                         itemlist = list(item)
@@ -510,9 +507,9 @@ class Evolve(Recorder):
                               and order.created_pairs == True]
         for order in plan_delivery_list:
             waiting_manufacturers = [manufacturer_agent_id for (manufacturer_agent_id, _) in order.manufacturers_num_partners]
-            for (manufacturer_agent_id, manufacturer_production_time, amount) in order.manufacturers:
+            for (manufacturer_agent_id, manufacturer_production_time, amount, price) in order.manufacturers:
                 if manufacturer_agent_id not in waiting_manufacturers and manufacturer_agent_id not in order.planned_manufacturers:
-                    order.manufacturer_delivery_plan.append((manufacturer_agent_id, self.current_step + manufacturer_production_time, amount))
+                    order.manufacturer_delivery_plan.append((manufacturer_agent_id, self.current_step + manufacturer_production_time, amount, price))
                     order.planned_manufacturers.append(manufacturer_agent_id)
                     manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
@@ -551,23 +548,23 @@ class Evolve(Recorder):
                                          and order.created_pairs == True]
         for order in possible_delivery_to_retailer:
             if order.manufacturer_delivery_plan:
-                for (manufacturer_agent_id, delivery_step, amount) in order.manufacturer_delivery_plan:
+                for (manufacturer_agent_id, delivery_step, amount, price) in order.manufacturer_delivery_plan:
                     if delivery_step == self.current_step:
                         retailer = self.find_agent_by_id(order.retailer_agent_id)
                         manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
-                        step_income = (manufacturer.selling_price * amount)
-                        compounded_for_tc = step_income * (1 + (manufacturer.tc_rate / 365))**manufacturer.payment_term
-                        manufacturer.receivables.append((compounded_for_tc, self.current_step + manufacturer.payment_term, retailer.agent_id))
-                        retailer.payables.append((compounded_for_tc, self.current_step + manufacturer.payment_term, manufacturer_agent_id))
+                        step_income = (price * amount)
+                        # compounded_for_tc = step_income * (1 + (manufacturer.tc_rate / 365))**manufacturer.payment_term
+                        manufacturer.receivables.append((step_income, self.current_step + manufacturer.payment_term, retailer.agent_id))
+                        retailer.payables.append((step_income, self.current_step + manufacturer.payment_term, manufacturer_agent_id))
                         # manufacturer.working_capital += step_income
                         for tup in manufacturer.inventory_track:
                             if tup[1] <= self.current_step:
                                 manufacturer.inventory_track.remove(tup)
                         
-                        price_to_pay = compounded_for_tc
+                        # price_to_pay = compounded_for_tc
                         # retailer.working_capital -= price_to_pay
-                        retailer.inventory_track.append((price_to_pay, self.current_step + retailer.production_time))
+                        retailer.inventory_track.append((step_income, self.current_step + retailer.production_time))
 
                         order.amount_delivered_to_retailer += amount
 
@@ -599,9 +596,9 @@ class Evolve(Recorder):
                                 and order.completion_step == self.current_step]
         for order in delivery_by_retailer:
             retailer = self.find_agent_by_id(order.retailer_agent_id)
-            step_income = (retailer.selling_price * order.amount_delivered_to_retailer)
-            compounded_for_tc = step_income * (1 + (retailer.tc_rate / 365))**retailer.payment_term
-            retailer.receivables.append((compounded_for_tc, self.current_step + retailer.payment_term, 'outside'))
+            step_income = (order.retailer_selling_price * order.amount_delivered_to_retailer)
+            # compounded_for_tc = step_income * (1 + (retailer.tc_rate / 365))**retailer.payment_term
+            retailer.receivables.append((step_income, self.current_step + retailer.payment_term, 'outside'))
             # retailer.working_capital += step_income
             for tup in retailer.inventory_track:
                 if tup[1] <= self.current_step:
@@ -633,74 +630,21 @@ class Evolve(Recorder):
                         agent.working_capital -= amount
                         agent.liability -= amount
 
-    # def calculate_average_layer_parameters_and_create_fresh_agent(self, layer: str, bankrupted_agent_id: int):
-        
-    #     # initial_object_of_bankrupted_agent_in_list = [agent for agent in self._initial_list_agents if agent.agent_id == bankrupted_agent_id]
-
-    #     # if len(initial_object_of_bankrupted_agent_in_list) == 0:
-    #     initial_object_of_bankrupted_agent_in_list = list()
-    #     if layer == 'r':
-    #         initial_object_of_bankrupted_agent_in_list.append(self.defaul_retailer)
-    #     elif layer == 'm':
-    #         initial_object_of_bankrupted_agent_in_list.append(self.default_manufacturer)
-    #     else:
-    #         initial_object_of_bankrupted_agent_in_list.append(self.default_supplier)
-
-    #     if len(initial_object_of_bankrupted_agent_in_list) != 1:
-    #         a = len(initial_object_of_bankrupted_agent_in_list)
-    #         raise Exception(f'error occured during creating new agent, the length is {a}')
-
-    #     initial_object = initial_object_of_bankrupted_agent_in_list[0]
-        
-    #     agent_id = self.next_agent_id
-    #     role = layer
-    #     wcap = initial_object.working_capital
-    #     mu_selling_price = initial_object.mu_selling_price
-    #     sigma_selling_price = initial_object.sigma_selling_price
-    #     q = initial_object.q
-    #     consumer_demand_mean = initial_object.consumer_demand_mean
-    #     p_delivery = initial_object.p_delivery
-    #     input_margin = initial_object.input_margin
-    #     interest_rate = initial_object.interest_rate
-    #     fixed_cost = initial_object.fixed_cost
-    #     days_between_financing = initial_object.days_between_financing
-    #     financing_period = initial_object.financing_period
-    #     ordering_period = initial_object.ordering_period
-    #     production_time = initial_object.production_time
-    #     fixed_assets = initial_object.fixed_assets
-    #     payment_term = initial_object.payment_term
-    #     tc_rate = initial_object.tc_rate
-    #     long_term_debt = initial_object.long_term_debt
-
-    #     new_agent = Agent(agent_id, role, wcap, mu_selling_price, sigma_selling_price, q, consumer_demand_mean, p_delivery, input_margin, interest_rate, fixed_cost, days_between_financing, financing_period, ordering_period, production_time, fixed_assets, payment_term, tc_rate, long_term_debt)
-    #     self.next_agent_id += 1
-    #     return new_agent
-
     def check_for_bankruptcy(self):
         for agent in self.list_agents:
             if agent.equity <= 0 and not agent.bankruptcy:
                 bankrupted_agent_role = agent.role
-                # bankrupted_agent_id = agent.agent_id
                 agent.bankruptcy = True
                 print(f'bankruptcy noticed for agent {agent.agent_id}')
 
                 if bankrupted_agent_role == 'r':
                     self.ret_list.remove(agent)
-                    # fresh_one = self.calculate_average_layer_parameters_and_create_fresh_agent('r', bankrupted_agent_id)
-                    # self.ret_list.append(fresh_one)
-                    # self.list_agents.append(fresh_one)
 
                 if bankrupted_agent_role == 'm':
                     self.man_list.remove(agent)
-                    # fresh_one = self.calculate_average_layer_parameters_and_create_fresh_agent('m', bankrupted_agent_id)
-                    # self.man_list.append(fresh_one)
-                    # self.list_agents.append(fresh_one)
 
                 if bankrupted_agent_role == 's':
                     self.sup_list.remove(agent)
-                    # fresh_one = self.calculate_average_layer_parameters_and_create_fresh_agent('s', bankrupted_agent_id)
-                    # self.sup_list.append(fresh_one)
-                    # self.list_agents.append(fresh_one)
 
     def check_working_capital(self):
         """
@@ -726,7 +670,7 @@ class Evolve(Recorder):
                 self.update_total_assets_and_liabilities_and_equity()
                 self.fixed_cost_and_cost_of_capital_subtraction()
                 self.check_for_bankruptcy()
-                if self.current_step > 300:
+                if self.current_step > 400:
                     self.credit_calculations()
 
                 if self._SC_financing:

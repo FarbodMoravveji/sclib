@@ -10,7 +10,7 @@ class Order_Package:
 
     order_number = 1
 
-    def __init__(self, initial_order_amount, retailer_agent_id, order_initialization_step):
+    def __init__(self, initial_order_amount, retailer_agent_id, order_initialization_step, retailer_selling_price):
         """
         constructor
          Input:
@@ -23,6 +23,7 @@ class Order_Package:
         self.amount_delivered_to_retailer = 0
         self.retailer_agent_id = retailer_agent_id
         self.order_initialization_step = order_initialization_step
+        self.retailer_selling_price = retailer_selling_price
         self.completion_step = 0
         self.num_manufacturers = 0
         self.num_delivered_to_retailer = 0
