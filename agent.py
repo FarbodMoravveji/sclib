@@ -21,7 +21,6 @@ class Agent(Parameters):
                  sigma_selling_price: float = 0.06,
                  q: float = 0.90,
                  consumer_demand_mean: float = 60,
-                 p_delivery: float = 0.80,
                  input_margin: float = 0.50,
                  interest_rate: float = 0.002,
                  fixed_cost: float = 0.0,
@@ -53,7 +52,6 @@ class Agent(Parameters):
         self.selling_price = 0.0
         self.q = q
         self.consumer_demand_mean = consumer_demand_mean
-        self.p_delivery = p_delivery
         self.prod_cap = 0.0
         self.fixed_cost = fixed_cost
         self.input_margin = input_margin
@@ -86,7 +84,7 @@ class Agent(Parameters):
         self.receivables_value = 0.0
         self.payables = list()
         self.payables_value = 0.0
-        
+
         self.financing_rate = 0.15
         self.total_credit_capacity = self.working_capital
         self.current_credit_capacity = 0.0
@@ -96,11 +94,19 @@ class Agent(Parameters):
         self.credit_availability = False
         self.in_default = False
         self.bankruptcy = False
+        self.SCF_availability = False
+        self.SCF_capacity = 0
+        self.RF_eligible_contracts = list()
+        self.scheduled_money_payment = list()
+        self.SCF_history = list()
+        self.total_assets_history = list()
+        self.total_liabilities_history = list()
+        self.equity_history = list()
         self.log_liability = list()
         self.__check_role()
         self.__assign_role_specific_attributes()
 
-    def __assign_role_specific_attributes(self) -> None: 
+    def __assign_role_specific_attributes(self) -> None:
         """
         Private method to add the following attributes to the following roles:
 
@@ -109,7 +115,7 @@ class Agent(Parameters):
         manufacturer             N                 Y
         supplier                 N                 N
         """
-         
+
         if self.role == self.retailer:
             self.consumer_demand = 0.0
             self.orders_succeeded = 0.0

@@ -30,6 +30,10 @@ class Recorder:
         self._log_working_capital = self.__dummy_log_working_capital
         self._log_financing = self.__dummy_log_financing()
         self._log_dp = self.__dummy_log_default()
+        self._log_SCF = self.__dummy_log_SCF()
+        self._log_total_assets = self.__dummy_log_total_assets()
+        self._log_total_liabilities = self.__dummy_log_total_liabilities()
+        self._log_equity = self.__dummy_log_equity()
 
         self._initial_list_agents = copy.deepcopy(list_agents)
         self.__choose_default_agent_to_replace()
@@ -49,6 +53,23 @@ class Recorder:
     @property
     def log_dp(self) -> DataFrame:
         return self._log_dp
+
+    @property
+    def log_SCF(self) -> DataFrame:
+        return self._log_SCF
+
+    @property
+    def log_total_assets(self) -> DataFrame:
+        return self._log_total_assets
+
+    @property
+    def log_total_liabilities(self) -> DataFrame:
+        return self._log_total_liabilities
+
+    @property
+    def log_equity(self) -> DataFrame:
+        return self._log_equity
+
 
     @property
     def initial_list_agents(self) -> List[Agent]:
@@ -112,6 +133,32 @@ class Recorder:
         df = pd.DataFrame(a)
         return df
 
+    def __dummy_log_SCF(self) -> DataFrame:
+        """
+        this method creates a temporary dataframe which will be replaced after model
+        run is completed.
+        *The method log_supply_chain_financing should be called in the main script before
+        visualizing self._log_SCF.
+        """
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
+
+    def __dummy_log_total_assets(self):
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
+
+    def __dummy_log_total_liabilities(self):
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
+
+    def __dummy_log_equity(self):
+        a = np.zeros(1)
+        df = pd.DataFrame(a)
+        return df
+
     def __break_list(self) -> None:
             """
             Creates lists of retailers, manufacturers and suppliers. 
@@ -132,27 +179,6 @@ class Recorder:
         self.defaul_retailer = copy.deepcopy(defret)
         self.default_manufacturer = copy.deepcopy(defman)
         self.default_supplier = copy.deepcopy(defsup)
-
-    # def __remember_initial_state(self) -> None:
-    #     """
-    #     This method is used in __init__ in order to save the initial state
-    #     of model, that is combined of the initial state of list_agents, 
-    #     the current step and logs for working capital, delivery and orders.
-    #     """
-    #     self._initial_list_agents = self.list_agents
-    #     self._initial_log_working_capital = self._log_working_capital
-    #     self._initial_log_orders = self._log_orders
-    #     self._initial_log_delivery = self._log_delivery
-   
-    # def restart_model(self):
-    #     """
-    #     This method brings the model back to its initial state.
-    #     """
-    #     self.list_agents = self._initial_list_agents
-    #     self._log_working_capital = self._initial_log_working_capital
-    #     self._log_orders = self._initial_log_orders
-    #     self._log_delivery = self._initial_log_delivery
-    #     self.current_step = 0
 
     def log_wcap(self, proceed_steps: int, final_list_agents: list) -> None:
         """
@@ -195,15 +221,83 @@ class Recorder:
             proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
             final_list_agents = The final agents_object.list_agent.
         """
-        v = [f'step_{i}' for i in range(301, proceed_steps + 1)]
+        v = [f'step_{i}' for i in range(401, proceed_steps + 1)]
         total_agents = len(final_list_agents)
-        matrix = np.zeros([total_agents, proceed_steps - 300])
+        matrix = np.ones([total_agents, proceed_steps - 400])
         for agent in final_list_agents:
             aid = agent.agent_id
             for (amount, step) in agent.default_probability_history:
-                matrix[aid][step - 301] = amount
+                matrix[aid][step - 401] = amount
         log_dp = pd.DataFrame(matrix, columns = v)
         self._log_dp = log_dp
+
+    def log_supply_chain_financing(self, proceed_steps: int, final_list_agents: list) -> None:
+        """
+        This method creates a DataFrame for the values of SCF financing for each agent at each step.
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+            final_list_agents = The final agents_object.list_agent.
+        """
+        v = [f'step_{i}' for i in range(1, proceed_steps + 1)]
+        total_agents = len(final_list_agents)
+        matrix = np.zeros([total_agents, proceed_steps])
+        for agent in final_list_agents:
+            aid = agent.agent_id
+            for (amount, step) in agent.SCF_history:
+                matrix[aid][step - 1] = amount
+        log_scf = pd.DataFrame(matrix, columns = v)
+        self._log_SCF = log_scf
+
+    def log_assets(self, proceed_steps: int, final_list_agents: list) -> None:
+        """
+        This method creates a DataFrame of total assets for each agent at each step.
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+            final_list_agents = The final agents_object.list_agent.
+        """
+        v = [f'step_{i}' for i in range(1, proceed_steps + 1)]
+        total_agents = len(final_list_agents)
+        matrix = np.zeros([total_agents, proceed_steps])
+        for agent in final_list_agents:
+            aid = agent.agent_id
+            for (amount, step) in agent.total_assets_history:
+                matrix[aid][step - 1] = amount
+        log_assets = pd.DataFrame(matrix, columns = v)
+        self._log_total_assets = log_assets
+
+    def log_liabilities(self, proceed_steps: int, final_list_agents: list) -> None:
+        """
+        This method creates a DataFrame of total liabilities for each agent at each step.
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+            final_list_agents = The final agents_object.list_agent.
+        """
+        v = [f'step_{i}' for i in range(1, proceed_steps + 1)]
+        total_agents = len(final_list_agents)
+        matrix = np.zeros([total_agents, proceed_steps])
+        for agent in final_list_agents:
+            aid = agent.agent_id
+            for (amount, step) in agent.total_liabilities_history:
+                matrix[aid][step - 1] = amount
+        log_liab = pd.DataFrame(matrix, columns = v)
+        self._log_total_liabilities = log_liab
+
+    def log_Equity(self, proceed_steps: int, final_list_agents: list) -> None:
+        """
+        This method creates a DataFrame of equity value for each agent at each step.
+        Receives:
+            proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
+            final_list_agents = The final agents_object.list_agent.
+        """
+        v = [f'step_{i}' for i in range(1, proceed_steps + 1)]
+        total_agents = len(final_list_agents)
+        matrix = np.zeros([total_agents, proceed_steps])
+        for agent in final_list_agents:
+            aid = agent.agent_id
+            for (amount, step) in agent.equity_history:
+                matrix[aid][step - 1] = amount
+        log_E = pd.DataFrame(matrix, columns = v)
+        self._log_equity = log_E
 
     def almost_equal_to_zero(self, value: float, abs_tol: float) -> bool:
         """
@@ -228,13 +322,3 @@ class Recorder:
             if not agent.bankruptcy:
                 step_selling_price = np.random.lognormal(mean = log(agent.mu_selling_price), sigma = agent.sigma_selling_price)
                 agent.selling_price = step_selling_price
-
-    # def step_profit_dataframe(self) -> DataFrame:
-    #     """
-    #     Uses the log_working_capital DataFrame to create a new DataFrame containing
-    #     step profot values with dimensions identical to log_working_capital.
-    #     """
-    #     log_step_profit = self.log_working_capital.diff(axis = 1)
-    #     log_step_profit.fillna(0, inplace = True)
-    #     return log_step_profit
-    
