@@ -38,6 +38,10 @@ class Recorder:
         self._initial_list_agents = copy.deepcopy(list_agents)
         self.__choose_default_agent_to_replace()
 
+        self._year = 360
+        self._half_year = 180
+        self._credit_rating_step = 200
+
     @property
     def n_agents(self) -> int:
         return self._n_agents
@@ -221,13 +225,13 @@ class Recorder:
             proceed_steps = number of steps the model has been proceeded (equal to the value passed to the model.procced() method).
             final_list_agents = The final agents_object.list_agent.
         """
-        v = [f'step_{i}' for i in range(401, proceed_steps + 1)]
+        v = [f'step_{i}' for i in range(self._credit_rating_step + 1, proceed_steps + 1)]
         total_agents = len(final_list_agents)
-        matrix = np.ones([total_agents, proceed_steps - 400])
+        matrix = np.ones([total_agents, proceed_steps - self._credit_rating_step])
         for agent in final_list_agents:
             aid = agent.agent_id
             for (amount, step) in agent.default_probability_history:
-                matrix[aid][step - 401] = amount
+                matrix[aid][step - (self._credit_rating_step + 1)] = amount
         log_dp = pd.DataFrame(matrix, columns = v)
         self._log_dp = log_dp
 

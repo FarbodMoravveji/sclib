@@ -11,8 +11,9 @@ class Parameters:
     _supplier: str                  # Pre-defined agent role
     _abs_tol: float                 # The parameter used for abs_tolerance in math.isclose() method.
     _RF_ratio : float               # The ratio of a receivable that can be sold.
-    _risk_free_rate: float           # The risk free investment rate
-    _interest_rate_margin: float
+    _risk_free_rate: float          # The risk free investment rate
+    _interest_rate_margin: float    # The amount added to default risk to calculate short-term financing interest rate.
+    _ltd_volatility: float          # The allowed volatility
 
     def __init__(self):
         """ Constructor """
@@ -26,6 +27,7 @@ class Parameters:
         self._RF_ratio = 0.7
         self._risk_free_rate = 0.03
         self._interest_rate_margin = 0.01
+        self._ltd_volatility = 0.2
 
     @property
     def success(self) -> int:
@@ -62,3 +64,7 @@ class Parameters:
     @property
     def interest_rate_margin(self) -> float:
         return self._interest_rate_margin
+
+    @property
+    def ltd_volatility(self) -> float:
+        return self._ltd_volatility

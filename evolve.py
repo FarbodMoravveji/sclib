@@ -241,6 +241,18 @@ class Evolve(Recorder):
                         cur_pay += val
                     agent.payables_value = cur_pay
 
+    def periodic_long_term_debt_revision(self):
+        """
+        """
+        for agent in self.list_agents:
+            if not self.current_step % self._half_year and not agent.bankruptcy:
+                long_term_debt_value = agent.long_term_debt
+                low = long_term_debt_value * (1 - agent.ltd_volatility)
+                high = long_term_debt_value * (1 + agent.ltd_volatility)
+                new_long_term_debt_value = np.random.uniform(low, high)
+                agent.long_term_debt = new_long_term_debt_value
+                print(f'long term debt revised for agent {agent.agent_id} at step {self.current_step}')
+
     def update_total_assets_and_liabilities_and_equity(self):
         """
         The value of total_assets, total liabilities and equity of each agent is
@@ -257,11 +269,11 @@ class Evolve(Recorder):
                 agent.list_equity.append(agent.equity)
                 agent.equity_history.append((agent.equity, self.current_step))
 
-                if self.current_step > 400:
+                if self.current_step > self._credit_rating_step:
                     daily_log_return_list = diff(log(agent.list_assets))
                     yearly_log_return_list = list()
-                    for i in range(len(daily_log_return_list) - 365):
-                        yearly_log_return_list.append(sum(daily_log_return_list[i:i + 365]))
+                    for i in range(len(daily_log_return_list) - self._half_year):
+                        yearly_log_return_list.append(sum(daily_log_return_list[i:i + self._half_year]))
                     agent.sigma_assets = np.std(yearly_log_return_list)
 
     def calculate_duration_of_obligations(self):
@@ -274,7 +286,7 @@ class Evolve(Recorder):
                 for (amount, _, due_date) in agent.financing_history:
                     if due_date > self.current_step:
                         l.append((amount, due_date - self.current_step))
-                present_value = [(amount * (1 / (1 + (agent.financing_rate/ 365)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
+                present_value = [(amount * (1 / (1 + (agent.financing_rate/ self._year)) ** remaining_time), remaining_time) for (amount, remaining_time) in l ]
                 pv_of_total_obligations = sum(i for i, _ in present_value)
                 if pv_of_total_obligations != 0:
                     timed_obligations = sum(i * j for i, j in present_value)
@@ -332,7 +344,7 @@ class Evolve(Recorder):
         """
         for agent in self.list_agents:
             if not agent.bankruptcy:
-                step_cost = agent.fixed_cost + (agent.risk_free_rate / 365) * agent.working_capital
+                step_cost = agent.fixed_cost + (agent.risk_free_rate / self._year) * agent.working_capital
                 agent.working_capital -= step_cost
 
     def determine_capacity(self):
@@ -350,13 +362,13 @@ class Evolve(Recorder):
                     if buyer.default_probability < agent.default_probability:
                         agent.RF_eligible_contracts.append((amount, due_date, buyer_id))
                 for (amount, due_date, buyer_id) in agent.RF_eligible_contracts:
-                    discounted_amount = (amount / (1 + (buyer.interest_rate/365)) ** (due_date - self.current_step))
+                    discounted_amount = (amount / (1 + (buyer.interest_rate/self._year)) ** (due_date - self.current_step))
                     feasible_amount = discounted_amount * agent.RF_ratio
                     agent.SCF_capacity += feasible_amount
 
-                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period) + agent.SCF_capacity) / price_mean)
+                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / self._year)) ** agent.financing_period) + agent.SCF_capacity) / price_mean)
             elif self._wcap_financing and agent.credit_availability and not self._SC_financing and not agent.bankruptcy:
-                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / 365)) ** agent.financing_period)) / price_mean)
+                agent.prod_cap = max(0, (agent.working_capital + agent.current_credit_capacity * (1 / (1 + (agent.financing_rate / self._year)) ** agent.financing_period)) / price_mean)
             else:
                 agent.prod_cap = max(0, agent.working_capital / price_mean)
 
@@ -530,7 +542,7 @@ class Evolve(Recorder):
                     manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
                     step_income = price * amount            #Calculating profit using a fixed margin for suppliers
-                    # compounded_for_tc = step_income * (1 + (supplier.tc_rate / 365))**supplier.payment_term   #Calculates the payment value under trade credit,
+                    # compounded_for_tc = step_income * (1 + (supplier.tc_rate / self._year))**supplier.payment_term   #Calculates the payment value under trade credit,
                     supplier.receivables.append((step_income, self.current_step + supplier.payment_term, manufacturer_agent_id))# Addine TC to receivables.
                     manufacturer.payables.append((step_income, self.current_step + supplier.payment_term, supplier_agent_id))# Adding TC to payables.
                     # supplier.working_capital += step_income
@@ -614,14 +626,14 @@ class Evolve(Recorder):
                         manufacturer = self.find_agent_by_id(manufacturer_agent_id)
 
                         step_income = (price * amount)
-                        # compounded_for_tc = step_income * (1 + (manufacturer.tc_rate / 365))**manufacturer.payment_term
+                        # compounded_for_tc = step_income * (1 + (manufacturer.tc_rate / self._year))**manufacturer.payment_term
                         manufacturer.receivables.append((step_income, self.current_step + manufacturer.payment_term, retailer.agent_id))
                         retailer.payables.append((step_income, self.current_step + manufacturer.payment_term, manufacturer_agent_id))
                         # manufacturer.working_capital += step_income
                         for tup in manufacturer.inventory_track:
                             if tup[1] <= self.current_step:
                                 manufacturer.inventory_track.remove(tup)
-                        
+
                         # price_to_pay = compounded_for_tc
                         # retailer.working_capital -= price_to_pay
                         retailer.inventory_track.append((step_income, self.current_step + retailer.production_time))
@@ -663,7 +675,7 @@ class Evolve(Recorder):
         for order in delivery_by_retailer:
             retailer = self.find_agent_by_id(order.retailer_agent_id)
             step_income = (order.retailer_selling_price * order.amount_delivered_to_retailer)
-            # compounded_for_tc = step_income * (1 + (retailer.tc_rate / 365))**retailer.payment_term
+            # compounded_for_tc = step_income * (1 + (retailer.tc_rate / self._year))**retailer.payment_term
             retailer.receivables.append((step_income, self.current_step + retailer.payment_term, 'outside'))
             # retailer.working_capital += step_income
             for tup in retailer.inventory_track:
@@ -677,7 +689,7 @@ class Evolve(Recorder):
         """
         agent = self.find_agent_by_id(agent_id)
         agent.working_capital += amount
-        compounded_value = (amount) * ((1 + (agent.financing_rate / 365)) ** (agent.financing_period))
+        compounded_value = (amount) * ((1 + (agent.financing_rate / self._year)) ** (agent.financing_period))
         agent.liability += compounded_value
         agent.time_of_next_allowed_financing = self.current_step + agent.days_between_financing
         agent.financing_history.append((compounded_value, self.current_step, self.current_step + agent.financing_period))
@@ -736,10 +748,15 @@ class Evolve(Recorder):
 
                 self.check_receivables_and_payables()
                 self.calculate_inventory_receivable_payable_values()
+
+                if self.current_step >= self._half_year:
+                    self.periodic_long_term_debt_revision()
+
                 self.update_total_assets_and_liabilities_and_equity()
                 self.fixed_cost_and_cost_of_capital_subtraction()
                 self.check_for_bankruptcy()
-                if self.current_step > 400:
+
+                if self.current_step > self._credit_rating_step:
                     self.credit_calculations()
                     self.calculate_agent_interest_rate()
 
