@@ -93,30 +93,34 @@ Possible DataFrames to be plotted are:
   * `model.log_working_capital`: The Dataframe holding liquidity dynamics of agents. 
   
   ![working capital dynamics of each agent](./charts/working_capital_dynamics-of-each_agent.png)
-  
-  
-  * `model.log_financing`:
+
+
+  * `model.log_financing`: Visualization of this DataFrame depicts timing and value of short-term bank financing.
   
   ![financing history of each agent](./charts/financing_history_of_each_agent.png)
-  
-  
-  * `model.log_dp`:
+
+
+  * `model.log_dp`: Vizualizes default probaility time series of agents.
   
   ![credit rating history of each agent](./charts/credit_rating_history_of_each_agent.png)
-  
-  
-  * `model.log_SCF`:
+
+
+  * `model.log_SCF`: To get a visual impression of reverse factoring behavior of agents, one would need to visualize this DataFrame.
   
   ![reverse factoring history of each agent](./charts/reverse_factoring_history_of_each_agent.png)
-  
-  * `model.log_total_assets`:
+
+
+  * `model.log_total_assets`: The situation regarding total_assets state of agents can be plotted using this DataFrame.
   
   ![total assets history of each agent](./charts/total_assets_history_of_each_agent.png)
-  
-  * `model.log_total_liabilities`:
+
+
+  * `model.log_total_liabilities`: This DataFrame can be used to visualize total_liabilities state of agents. 
   
   ![total liabilities history of each agent](./charts/total_liabilities_history_of_each_agent.png)
-  
-  * `model.log_equity`:
+
+
+  * `model.log_equity`: This DataFrame should be passed to Visualizer object to enable one to plot equity bahaviors of agents. 
   
   ![equity history of each agent](./charts/equity_history_of_each_agent.png)
+
