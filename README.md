@@ -28,7 +28,7 @@ simulation yourself:
 
 #. Prepare an Excel sheet that contains the initial parameters of the agents. Each row of the spreadsheet contains the initial parameters of one agent. Columns hold parameter values for agents of the model. The description and order of column headers are shown below (pleasse be careful about the order and the spelling of parameters):
 
-  * `agent_id`: (integer): An integer showing the unique id of each agent. Please make sure that ids start from zero and stride by one
+  * `agent_id`: (integer) An integer showing the unique id of each agent. Please make sure that ids start from zero and stride by one
   * `role`: (string) A character defining the layer to which the agent belongs. Use `r` for retailer, `m` for manufacturer and `s` for supplier. Please make sure that each layer has at least one agent. Otherwise, an exception occures
   * `working_capital`: (float) The initial liquidity of agent
   * `mu_selling_price`: (float) Selling prices are drawn from log-normal distribution. This parameter specifies the average value of the distribution
@@ -67,8 +67,9 @@ model.proceed(Desired_step_number)
 ## Visualization
 
 After using the preceding blocks of code, several dynamics of the model can be plotted. Data is stored in dataframes and in order to
-visualize all of them (including the dynamics of working capital, short-term financing, default probability, supply chain financing, total assets, total lliabilities and equity) we need to use the following block of code:
+visualize each one (including the dynamics of working capital, short-term financing, default probability, supply chain financing, total assets, total lliabilities and equity), you need to use the following block of code:
 
+In order to create DataFrames to be plotted, Use the following block:
 ```python
 from sclib.visualizer import Visualizer
 
@@ -80,25 +81,42 @@ model.log_supply_chain_financing(Desired_step_number, final_list_agents)
 model.log_assets(Desired_step_number, final_list_agents)
 model.log_liabilities(Desired_step_number, final_list_agents)
 model.log_Equity(Desired_step_number, final_list_agents)
-
-vis01 = Visualizer(dfrm = model.log_working_capital)
-vis01.line_plot(title = 'working capital dynamics of each agent', xlabel = 'step', ylabel = 'working capital' , legend = True)
-
-vis02 = Visualizer(dfrm = model.log_financing)
-vis02.line_plot(title = 'financing history of each agent', xlabel = 'step', ylabel = 'amount received' , legend = False)
-
-vis03 = Visualizer(dfrm = model.log_dp)
-vis03.line_plot(title = 'credit rating history of each agent', xlabel = 'step', ylabel = 'default probability' , legend = False)
-
-vis04 = Visualizer(dfrm = model.log_SCF)
-vis04.line_plot(title = 'Reverse factoring history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
-
-vis05 = Visualizer(dfrm = model.log_total_assets)
-vis05.line_plot(title = 'total assets history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
-
-vis06 = Visualizer(dfrm = model.log_total_liabilities)
-vis06.line_plot(title = 'total liabilities history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
-
-vis07 = Visualizer(dfrm = model.log_equity)
-vis07.line_plot(title = 'equity history of each agent', xlabel = 'step', ylabel = 'amount' , legend = False)
 ```
+
+Now "sclib.visualizer.Visualizer" object can be used to plot DataFrames:
+```python
+vis = Visualizer(dfrm = Desired DataFrame)
+vis.line_plot(title = 'Desired title', xlabel = 'desired lable for x axis', ylabel = 'desired label for y axis' , legend = boolean)
+```
+Possible DataFrames to be plotted are:
+
+  * `model.log_working_capital`: The Dataframe holding liquidity dynamics of agents. 
+  
+  ![working capital dynamics of each agent](./charts/working_capital_dynamics-of-each_agent.png)
+  
+  
+  * `model.log_financing`:
+  
+  ![financing history of each agent](./charts/financing_history_of_each_agent.png)
+  
+  
+  * `model.log_dp`:
+  
+  ![credit rating history of each agent](./charts/credit_rating_history_of_each_agent.png)
+  
+  
+  * `model.log_SCF`:
+  
+  ![reverse factoring history of each agent](./charts/reverse_factoring_history_of_each_agent.png)
+  
+  * `model.log_total_assets`:
+  
+  ![total assets history of each agent](./charts/total_assets_history_of_each_agent.png)
+  
+  * `model.log_total_liabilities`:
+  
+  ![total liabilities history of each agent](./charts/total_liabilities_history_of_each_agent.png)
+  
+  * `model.log_equity`:
+  
+  ![equity history of each agent](./charts/equity_history_of_each_agent.png)
